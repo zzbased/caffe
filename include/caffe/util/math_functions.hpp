@@ -4,7 +4,7 @@
 #define CAFFE_UTIL_MATH_FUNCTIONS_H_
 
 #include <mkl.h>
-#include <cublas_v2.h>
+//#include <cublas_v2.h>
 
 namespace caffe {
 

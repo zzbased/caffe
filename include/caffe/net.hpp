@@ -83,7 +83,8 @@ class Net {
   inline vector<Blob<Dtype>*>& input_blobs() { return net_input_blobs_; }
   inline vector<Blob<Dtype>*>& output_blobs() { return net_output_blobs_; }
 
- protected:
+ //protected:
+ public:
   // Function to get misc parameters, e.g. the learning rate multiplier and
   // weight decay.
   void GetLearningRateAndWeightDecay();

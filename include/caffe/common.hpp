@@ -4,14 +4,16 @@
 #define CAFFE_COMMON_HPP_
 
 #include <boost/shared_ptr.hpp>
-#include <cublas_v2.h>
-#include <cuda.h>
-#include <curand.h>
+//#include <cublas_v2.h>
+//#include <cuda.h>
+//#include <curand.h>
 // cuda driver types
-#include <driver_types.h>
+//#include <driver_types.h>
 #include <glog/logging.h>
 #include <mkl_vsl.h>
-
+#include <math.h>
+#include <iostream>     // std::cout
+#include <algorithm>    // std::min
 // various checks for different function calls.
 #define CUDA_CHECK(condition) CHECK_EQ((condition), cudaSuccess)
 #define CUBLAS_CHECK(condition) CHECK_EQ((condition), CUBLAS_STATUS_SUCCESS)
@@ -40,6 +42,38 @@ private:\
 // is executed we will see a fatal log.
 #define NOT_IMPLEMENTED LOG(FATAL) << "Not Implemented Yet"
 
+
+// for gpu mock
+typedef int *curandGenerator_t;
+typedef float *cublasHandle_t;
+	
+static const int cudaSuccess = 0;
+static int cudaMemset (void * devPtr, int value, size_t count ) {
+	return cudaSuccess;
+}
+
+static const int cudaMemcpyHostToDevice  = 1;
+static const int cudaMemcpyDeviceToHost = 2;
+static int cudaMemcpy	(void * 	dst,
+const void * 	src,
+size_t 	count,
+int 	kind
+) {
+return 0;
+}
+
+
+static int cudaFree	(void * devPtr) {return 0;}	
+static int cudaMalloc	(void ** devPtr,
+size_t 	size
+){return 0; }
+
+static double max(const double& x, const float& y) {
+   return (x > y ? (x) : (y));
+}
+static double min(const double& x, const float& y) {
+   return (x < y ? (x) : (y));
+}
 
 namespace caffe {
 
