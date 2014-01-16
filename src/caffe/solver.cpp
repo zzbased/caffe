@@ -38,7 +38,15 @@ Solver<Dtype>::Solver(const SolverParameter& param)
 
 
 template <typename Dtype>
-void Solver<Dtype>::Solve(const char* resume_file) {
+void Solver<Dtype>::Solve(const char* resume_file, const char * params_file) {
+  if (params_file) {
+    // params file
+    NetParameter trained_net_param;
+    ReadProtoFromBinaryFile(params_file, &trained_net_param);
+    net_->CopyTrainedLayersFrom(trained_net_param);
+    test_net_->CopyTrainedLayersFrom(trained_net_param);
+  }
+
   Caffe::set_mode(Caffe::Brew(param_.solver_mode()));
   Caffe::set_phase(Caffe::TRAIN);
   LOG(INFO) << "Solving " << net_->name();
@@ -87,6 +95,9 @@ void Solver<Dtype>::Test() {
   CHECK_NOTNULL(test_net_.get())->CopyTrainedLayersFrom(net_param);
   vector<Dtype> test_score;
   vector<Blob<Dtype>*> bottom_vec;
+  // test_iter specifies how many forward passes the test should carry out.
+  // In the case of MNIST, we have test batch size 100 and 100 test iterations,
+  // covering the full 10,000 testing images.
   for (int i = 0; i < param_.test_iter(); ++i) {
     const vector<Blob<Dtype>*>& result =
         test_net_->Forward(bottom_vec);
@@ -106,10 +117,13 @@ void Solver<Dtype>::Test() {
         }
       }
     }
+    //LOG(INFO) << "test_net_->num_inputs():" << test_net_->num_inputs() << "test_net_->num_outputs():" << test_net_->num_outputs();
   }
+  // score 0 is the accuracy, and score 1 is the testing loss function.
   for (int i = 0; i < test_score.size(); ++i) {
     LOG(INFO) << "Test score #" << i << ": "
-        << test_score[i] / param_.test_iter();
+        << test_score[i] / param_.test_iter() 
+        << " " << test_score[i] << "/" << param_.test_iter() ;
   }
 }
 

@@ -1,6 +1,6 @@
 // Copyright 2013 Yangqing Jia
 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 #include <fcntl.h>
 #include <google/protobuf/text_format.h>
 
@@ -18,7 +18,7 @@
 using namespace caffe;
 
 int main(int argc, char** argv) {
-  cudaSetDevice(0);
+  //cudaSetDevice(0);
   Caffe::set_mode(Caffe::GPU);
   Caffe::set_phase(Caffe::TRAIN);
   int repeat = 100;

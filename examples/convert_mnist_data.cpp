@@ -52,7 +52,7 @@ void convert_dataset(const char* image_filename, const char* label_filename,
   rows = swap_endian(rows);
   image_file.read((char*)(&cols), 4);
   cols = swap_endian(cols);
-
+  LOG(INFO) << "Param:" << num_items << " " << num_labels << " " << rows << " " << cols;
   // Open leveldb
   leveldb::DB* db;
   leveldb::Options options;

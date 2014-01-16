@@ -1,7 +1,7 @@
 // Copyright 2013 Yangqing Jia
 
-#include <cuda_runtime.h>
-#include <cublas_v2.h>
+//#include <cuda_runtime.h>
+//#include <cublas_v2.h>
 
 #include "caffe/blob.hpp"
 #include "caffe/common.hpp"
@@ -119,13 +119,13 @@ void Blob<Dtype>::CopyFrom(const Blob& source, bool copy_diff, bool reshape) {
   }
   switch (Caffe::mode()) {
   case Caffe::GPU:
-    if (copy_diff) {
+    /*if (copy_diff) {
       CUDA_CHECK(cudaMemcpy(diff_->mutable_gpu_data(), source.gpu_diff(),
           sizeof(Dtype) * count_, cudaMemcpyDeviceToDevice));
     } else {
       CUDA_CHECK(cudaMemcpy(data_->mutable_gpu_data(), source.gpu_data(),
           sizeof(Dtype) * count_, cudaMemcpyDeviceToDevice));
-    }
+    }*/
     break;
   case Caffe::CPU:
     if (copy_diff) {

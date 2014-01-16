@@ -6,7 +6,7 @@
 // Usage:
 //    test_net net_proto pretrained_net_proto iterations [CPU/GPU]
 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 
 #include <cstring>
 #include <cstdlib>
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  cudaSetDevice(0);
+  //cudaSetDevice(0);
   Caffe::set_phase(Caffe::TEST);
 
   if (argc == 5 && strcmp(argv[4], "GPU") == 0) {

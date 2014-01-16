@@ -5,7 +5,7 @@
 // Usage:
 //    train_net net_proto_file solver_proto_file [resume_point_file]
 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 
 #include <cstring>
 
@@ -28,7 +28,14 @@ int main(int argc, char** argv) {
   if (argc == 3) {
     LOG(INFO) << "Resuming from " << argv[2];
     solver.Solve(argv[2]);
-  } else {
+  } else if (argc == 4) {
+    if (strcmp(argv[2], "NULL") == 0) {
+      LOG(INFO) << "Init params from " << argv[3];
+      solver.Solve(NULL, argv[3]);
+    }
+  }
+  else {
+    LOG(INFO) << "Beginning Solve!";
     solver.Solve();
   }
   LOG(INFO) << "Optimization Done.";

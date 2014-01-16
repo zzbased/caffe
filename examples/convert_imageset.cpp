@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     // get the value
     datum.SerializeToString(&value);
     batch->Put(string(key_cstr), value);
-    if (++count % 1000 == 0) {
+    if (++count % 20 == 0) {
       db->Write(leveldb::WriteOptions(), batch);
       LOG(ERROR) << "Processed " << count << " files.";
       delete batch;

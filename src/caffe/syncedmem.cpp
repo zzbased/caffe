@@ -1,6 +1,6 @@
 // Copyright 2013 Yangqing Jia
 
-#include <cuda_runtime.h>
+//#include <cuda_runtime.h>
 
 #include <cstring>
 

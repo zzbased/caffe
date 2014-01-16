@@ -3,8 +3,8 @@ layers {
   layer {
     name: "data"
     type: "data"
-    source: "/home/jiayq/Data/ILSVRC12/val-leveldb"
-    meanfile: "/home/jiayq/Data/ILSVRC12/image_mean.binaryproto"
+    source: "/data/home/vincentyao/image_classification/caffe-master_2/examples/taobao-val-leveldb"
+    meanfile: "/data/home/vincentyao/image_classification/caffe-master_2/examples/mean.taobao.val"
     batchsize: 200
     cropsize: 227
     mirror: false

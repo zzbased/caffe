@@ -38,6 +38,8 @@ void Net<Dtype>::Init(const NetParameter& param) {
   CHECK_EQ(param.input_size() * 4, param.input_dim_size())
       << "Incorrect bottom blob dimension specifications.";
   // set the input blobs
+  LOG(INFO) << "Net name:" << name_ << ", param.input_size(): " << param.input_size() 
+  << ",param.input_dim_size() :" << param.input_dim_size() << ", num_layers:" << num_layers;
   for (int i = 0; i < param.input_size(); ++i) {
     const string& blob_name = param.input(i);
     shared_ptr<Blob<Dtype> > blob_pointer(
@@ -63,7 +65,8 @@ void Net<Dtype>::Init(const NetParameter& param) {
     const LayerParameter& layer_param = layer_connection.layer();
     layers_.push_back(shared_ptr<Layer<Dtype> >(GetLayer<Dtype>(layer_param)));
     layer_names_.push_back(layer_param.name());
-    LOG(INFO) << "Creating Layer " << layer_param.name();
+    LOG(INFO) << "Creating Layer " << i <<" [[" << layer_param.name() << "]], bottom_size:" 
+    << layer_connection.bottom_size() << ", top_size:" << layer_connection.top_size();
     bool need_backward = param.force_backward();
     // Figure out this layer's input and output
     for (int j = 0; j < layer_connection.bottom_size(); ++j) {
@@ -110,12 +113,14 @@ void Net<Dtype>::Init(const NetParameter& param) {
       }
     }
     // After this layer is connected, set it up.
-    // LOG(INFO) << "Setting up " << layer_names_[i];
+    LOG(INFO) << "Setting up " << layer_names_[i];
     layers_[i]->SetUp(bottom_vecs_[i], &top_vecs_[i]);
     for (int topid = 0; topid < top_vecs_[i].size(); ++topid) {
-      LOG(INFO) << "Top shape: " << top_vecs_[i][topid]->channels() << " "
-          << top_vecs_[i][topid]->height() << " "
-          << top_vecs_[i][topid]->width();
+      LOG(INFO) << "Top shape: channels[" << top_vecs_[i][topid]->channels() << "], height["
+          << top_vecs_[i][topid]->height() << "], width["
+          << top_vecs_[i][topid]->width() << "], num["
+          << top_vecs_[i][topid]->num() << "], count[" 
+          << top_vecs_[i][topid]->count() << "]";
     }
     // Check if this layer needs backward operation itself
     for (int j = 0; j < layers_[i]->layer_param().blobs_lr_size(); ++j) {
@@ -184,7 +189,7 @@ void Net<Dtype>::GetLearningRateAndWeightDecay() {
 template <typename Dtype>
 const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled() {
   for (int i = 0; i < layers_.size(); ++i) {
-    // LOG(ERROR) << "Forwarding " << layer_names_[i];
+    //LOG(INFO) << "Forwarding " << layer_names_[i] << ", " << bottom_vecs_[i].size() << "," << top_vecs_[i].size();
     layers_[i]->Forward(bottom_vecs_[i], &top_vecs_[i]);
   }
   return net_output_blobs_;
