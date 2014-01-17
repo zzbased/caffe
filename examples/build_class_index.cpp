@@ -71,6 +71,35 @@ inline static bool ReadImageToGaryDatum(const string& filename, const int label,
   return ReadImageToDatum(filename, label, 0, 0, datum);
 }
 
+bool SplitString(const std::string& input, const std::string& split_char, std::vector<std::string>* split_result) 
+{
+    if (split_result == NULL)
+        return false;
+    else 
+        split_result->clear();
+
+    std::string substring = "";
+    size_t delim_length = split_char.size();
+    for (std::string::size_type begin_index = 0; begin_index < input.size(); )
+    {
+        std::string::size_type end_index = input.find(split_char, begin_index);
+        if (end_index == std::string::npos)
+        {
+            substring = input.substr(begin_index);
+            split_result->push_back(substring);
+            return true;
+        }
+        if (end_index > begin_index)
+        {
+            substring = input.substr(begin_index, (end_index - begin_index));
+            split_result->push_back(substring);
+        }
+        begin_index = end_index + delim_length;
+    }
+    return true;
+}
+
+
 DEFINE_string(file, "35590867467.jpg", "The file that contains images.");
 DEFINE_int32(row_col_num, 227, "Row/Column number");
 DEFINE_string(model_def, "examples/imagenet_deploy.prototxt", "The model definition file.");
@@ -78,7 +107,7 @@ DEFINE_string(pretrained_model, "examples/imagenet_model", "The pretrained model
 DEFINE_string(synset, "data/imagenet_category_name.txt", "The imagenet synset file.");
 DEFINE_bool(gpu, false, "use gpu for computation");
 DEFINE_string(index_file, "index_image.dat", "image index file");
-DEFINE_int32(similarity_weight_layer, 20, "");
+DEFINE_string(similarity_weight_layer, "20", "feature layer vector, format is 20,23,25");
 
 int Classify(const char * image_file, Net<float> & caffe_test_net, std::vector<std::string> & name_vector, 
   std::vector<float> & similarity_weight_vec, std::vector< std::pair<int, float> > & class_vec) {
@@ -115,10 +144,17 @@ int Classify(const char * image_file, Net<float> & caffe_test_net, std::vector<s
   //predict
   const vector<Blob<float>*>&  output_blobs = caffe_test_net.ForwardPrefilled();
 
-  const vector<Blob<float>*>& weight_vec = caffe_test_net.top_vecs_[FLAGS_similarity_weight_layer];
-  for (size_t i=0; i<weight_vec[0]->count(); i++) {
-    similarity_weight_vec.push_back(weight_vec[0]->cpu_data()[i]);
+  //process feature layer vector
+  std::vector<std::string> split_vector;
+  SplitString(FLAGS_similarity_weight_layer, ",", &split_vector);
+  for (size_t k=0; k<split_vector.size(); k++) {
+    int layer_num = atoi(split_vector[k].c_str());
+    const vector<Blob<float>*>& weight_vec = caffe_test_net.top_vecs_[layer_num];
+    for (size_t i=0; i<weight_vec[0]->count(); i++) {
+      similarity_weight_vec.push_back(weight_vec[0]->cpu_data()[i]);
+    }
   }
+
 
   //output result
   LOG(INFO) << "output blobs size:" << output_blobs.size();
@@ -128,9 +164,9 @@ int Classify(const char * image_file, Net<float> & caffe_test_net, std::vector<s
       LOG(INFO) << "output_blobs:" << output_blobs[i]->num() << " " << output_blobs[i]->count();
       const float* bottom_data = output_blobs[i]->cpu_data();
       LOG(INFO) << "";
-      const static int kTopNumber = 5;
+      const static int kTopNumber = 8;
       for (int k = 0; k < num; ++k) {        
-        //top 5
+        //top kTopNumber
         float maxval[kTopNumber] = {-1};
         int max_id[kTopNumber] = {0};
         for (int j = 0; j < dim; ++j) {
