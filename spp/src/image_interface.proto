@@ -5,6 +5,7 @@ message ClassifyRequest {
     	CLASSIFY = 0;
     	SIMILARITY = 1;
     	SEARCH = 2;
+        CLASSIFY_PAIPAI = 3;  //拍拍分类器
     }
     required bytes file_name = 1;
     optional int32 top_n_result = 2 [default = 5];

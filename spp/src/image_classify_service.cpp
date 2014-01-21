@@ -117,7 +117,7 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2)
     int ret = 0;
     if (g_classify_impl->request_message_.has_request_type()) {
         if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY) {
-            ret = g_classify_impl->ImageClassify(g_classify_impl->request_message_.file_name());
+            ret = g_classify_impl->ImageClassify(g_classify_impl->request_message_.file_name(), g_classify_impl->request_message_.top_n_result());
         } else if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::SIMILARITY) {
             if (g_classify_impl->request_message_.has_compare_file_name()) {
                 ret = g_classify_impl->ImageSimilarity(g_classify_impl->request_message_.file_name(),
@@ -125,6 +125,8 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2)
             }
         } else if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::SEARCH) {
             ret = g_classify_impl->ImageSearch(g_classify_impl->request_message_.file_name(), g_classify_impl->request_message_.top_n_result());
+        } else if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY_PAIPAI) {
+            ret = g_classify_impl->ImageClassify(g_classify_impl->request_message_.file_name(), g_classify_impl->request_message_.top_n_result(), image::ClassifyRequest::CLASSIFY_PAIPAI);
         } else {
             LOG(ERROR) << "request_message_ request_type no recognize :" << g_classify_impl->request_message_.request_type();
             return -1; 

@@ -1,7 +1,7 @@
 # The makefile for caffe. Extremely hacky.
 PROJECT := caffe
 TEST_GPUID := 0
-
+CXX=/data5/home/vincentyao/thirdparty/gcc-4.8.0/bin/g++
 include Makefile.config
 
 ##############################################################################
@@ -50,7 +50,7 @@ PROTO_GEN_PY := ${PROTO_SRCS:.proto=_pb2.py}
 CXX_OBJS := ${CXX_SRCS:.cpp=.o}
 CU_OBJS := ${CU_SRCS:.cu=.cuo}
 PROTO_OBJS := ${PROTO_GEN_CC:.cc=.o}
-OBJS := $(PROTO_OBJS) $(CXX_OBJS) $(CU_OBJS)
+OBJS := $(PROTO_OBJS) $(CXX_OBJS)
 # program and test objects
 EXAMPLE_OBJS := ${EXAMPLE_SRCS:.cpp=.o}
 TEST_OBJS := ${TEST_SRCS:.cpp=.o}
@@ -69,9 +69,9 @@ MKL_LIB_DIR := $(MKL_DIR)/lib $(MKL_DIR)/lib/intel64
 
 INCLUDE_DIRS += ./src ./include $(CUDA_INCLUDE_DIR) $(MKL_INCLUDE_DIR)
 LIBRARY_DIRS += $(CUDA_LIB_DIR) $(MKL_LIB_DIR)
-LIBRARIES := cudart cublas curand protobuf opencv_core opencv_highgui \
-	glog mkl_rt mkl_intel_thread leveldb snappy pthread boost_system \
-	opencv_imgproc
+LIBRARIES := protobuf opencv_core opencv_highgui \
+	glog gflags mkl_rt   mkl_intel_ilp64 mkl_core mkl_intel_thread mkl_mc iomp5 leveldb snappy pthread boost_system \
+	opencv_imgproc z stdc++
 PYTHON_LIBRARIES := boost_python python2.7
 WARNINGS := -Wall
 

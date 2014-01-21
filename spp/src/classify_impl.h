@@ -22,9 +22,13 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <maxent.h>
 #include "caffe/caffe.hpp"
+
 using namespace caffe;
 
+
+	
 class ClassifyImpl {
 public:
 
@@ -34,7 +38,7 @@ public:
 
 	int UnInit();
 
-	int ImageClassify(const std::string & filename, int top_n_res = kTopNumber, int is_search = 0);
+	int ImageClassify(const std::string & filename, int top_n_res = kTopNumber, int class_type = image::ClassifyRequest::CLASSIFY);
 
 	int ImageSearch(const std::string & filename, int top_n_res = kTopNumber);
 
@@ -50,17 +54,17 @@ public:
 	typedef std::vector<std::string> IdToFileName;
 	typedef std::map<std::string, size_t> ImageUniquer;
 private:
-	const static int kTopNumber = 5;
-	Net<float> * caffe_test_net_;		
+	const static int kTopNumber = 8;
+	Net<float> * caffe_test_net_;
+	ME_Model me_model_;		
 	std::vector<std::string> name_vector_;
+	std::vector<std::string> paipai_name_vector_;
 
 	SimWeightVector similarity_weight_vec_;
 
 	int LoadClassNameVector();
 	// for index
 	int LoadImageIndex(const char* filename);
-
-
 
 	ImageUniquer image_uniquer_;
 	IdToFileName index_id_to_filename_;

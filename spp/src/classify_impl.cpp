@@ -1,3 +1,4 @@
+#include <sstream>
 #include "classify_impl.h"
 #include "caffe/caffe.hpp"
 
@@ -5,6 +6,8 @@ DEFINE_int32(row_col_num, 227, "Row/Column number");
 DEFINE_string(model_def, "../../examples/imagenet_deploy.prototxt", "The model definition file.");
 DEFINE_string(pretrained_model, "../../examples/imagenet_model", "The pretrained model.");
 DEFINE_string(synset, "../../data/imagenet_category_name.txt", "The imagenet synset file.");
+DEFINE_string(paipai_synset, "../../data/paipai_category_name.txt", "The paipai synset file.");
+DEFINE_string(maxent_model, "../../examples/paipai_model_23layer_8_feature", "The paipai model file.");
 DEFINE_bool(gpu, false, "use gpu for computation");
 DEFINE_int32(similarity_weight_layer, 20, "");
 DEFINE_string(image_index_file, "../../examples/index_image.dat", "image index file");
@@ -12,32 +15,31 @@ DEFINE_int32(top_n_limit, 5, "use top_n_limit");
 
 bool SplitString(const std::string& input, const std::string& split_char, std::vector<std::string>* split_result) 
 {
-        if (split_result == NULL)
-            return false;
-        else 
-            split_result->clear();
+    if (split_result == NULL)
+        return false;
+    else 
+        split_result->clear();
 
-        std::string substring = "";
-        size_t delim_length = split_char.size();
-        for (std::string::size_type begin_index = 0; begin_index < input.size(); )
+    std::string substring = "";
+    size_t delim_length = split_char.size();
+    for (std::string::size_type begin_index = 0; begin_index < input.size(); )
+    {
+        std::string::size_type end_index = input.find(split_char, begin_index);
+        if (end_index == std::string::npos)
         {
-            std::string::size_type end_index = input.find(split_char, begin_index);
-            if (end_index == std::string::npos)
-            {
-                substring = input.substr(begin_index);
-                split_result->push_back(substring);
-                return true;
-            }
-            if (end_index > begin_index)
-            {
-                substring = input.substr(begin_index, (end_index - begin_index));
-                split_result->push_back(substring);
-            }
-            begin_index = end_index + delim_length;
+            substring = input.substr(begin_index);
+            split_result->push_back(substring);
+            return true;
         }
-        return true;
+        if (end_index > begin_index)
+        {
+            substring = input.substr(begin_index, (end_index - begin_index));
+            split_result->push_back(substring);
+        }
+        begin_index = end_index + delim_length;
+    }
+    return true;
 }
-
 
     
 
@@ -59,6 +61,11 @@ int ClassifyImpl::Init() {
   NetParameter trained_net_param;
   ReadProtoFromBinaryFile(FLAGS_pretrained_model, &trained_net_param);
   caffe_test_net_->CopyTrainedLayersFrom(trained_net_param);
+
+  if (!me_model_.load_from_file(FLAGS_maxent_model)) {
+    return -1;
+  }
+
 
   if (0 != LoadClassNameVector())
     return -1;
@@ -88,6 +95,19 @@ int ClassifyImpl::LoadClassNameVector() {
   }
   //LOG(INFO) << "name_vector_.size : " << name_vector_.size();
   CHECK_EQ(name_vector_.size(), 1000) << "name_vector_.size != 1000";
+  ifs.close();
+
+  ifs.open(FLAGS_paipai_synset.c_str(), std::ifstream::in);
+  paipai_name_vector_.clear();
+  while (getline(ifs, synset_line)) {
+    std::size_t found = synset_line.find_last_of("\t");
+    std::string name = synset_line.substr(found+1);
+    //printf("name:%s\n", name.c_str());
+    paipai_name_vector_.push_back(name);
+  }
+  //LOG(INFO) << "paipai_name_vector_.size : " << paipai_name_vector_.size();
+  CHECK_EQ(paipai_name_vector_.size(), 75) << "paipai_name_vector_.size != 75";
+  ifs.close();
   return 0;
 }
 
@@ -114,7 +134,7 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
       index_id_to_filename_.push_back(split_result[0]);
 
       SimWeightVector weight_vec;
-      for (size_t i=13; i<(4096+10+3); i++) {
+      for (size_t i=(class_num*2+3); i<split_result.size(); i++) {
         weight_vec.push_back( atof(split_result[i].c_str()) );
       }
       sim_weight_index_.push_back(weight_vec);
@@ -122,7 +142,7 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
       continue;
     }
 
-    for (size_t i=3; i<3+10; i=i+2) {
+    for (size_t i=3; i<3+class_num*2; i=i+2) {
       int class_id = atoi(split_result[i].c_str());
       ImageCategoryIndex::iterator it1 = image_class_index_.find(class_id);
       if (it1 == image_class_index_.end()) {
@@ -143,8 +163,20 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
   return 0;
 }
 
-int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int is_search) {
+std::string itoa(int value) {
+  std::string str;
+  std::stringstream ss;
+  ss << value;
+  ss >> str;
+  return str;
+}
+bool SortMaxentResultVectorFunction(const std::pair<std::string, double> & x, const std::pair<std::string, double> & y) {
+  return x.second > y.second;
+}
 
+int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int class_type) {
+  if (top_n_res > kTopNumber)
+    return -1;
   Datum datum;
   const static int kUndefinedLabel = 0;
   if (!ReadImageToDatum(filename.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
@@ -175,13 +207,21 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
   //predict
   const vector<Blob<float>*>&  output_blobs = caffe_test_net_->ForwardPrefilled();
 
-  if (is_search == 1) {
+  if (class_type == image::ClassifyRequest::SEARCH) {
     similarity_weight_vec_.clear();
     //store layer weight to calc similarity
     const vector<Blob<float>*>& weight_vec = caffe_test_net_->top_vecs_[FLAGS_similarity_weight_layer];
     for (size_t i=0; i<weight_vec[0]->count(); i++) {
       similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
     }
+  } else if (class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
+    similarity_weight_vec_.clear();
+    //store layer weight to calc similarity
+    //paipai分类器用第23层特征
+    const vector<Blob<float>*>& weight_vec = caffe_test_net_->top_vecs_[23];
+    for (size_t i=0; i<weight_vec[0]->count(); i++) {
+      similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
+    } 
   }
   //output result
   LOG(INFO) << "output blobs size:" << output_blobs.size();
@@ -215,16 +255,44 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
 
         //LOG(INFO) << "Maxid:" << max_id << ",maxval:" << maxval;
         printf("%s\n", filename.c_str());
-        for (int d=kTopNumber-1; d>=0; d--) {
-          printf("Rank%d : %d, %s, %f\n", kTopNumber-d, max_id[d], name_vector_[max_id[d]].c_str(), maxval[d]);
+        //for (int d=kTopNumber-1; d>=0; d--) {
+        //  printf("Rank%d : %d, %s, %f\n", kTopNumber-d, max_id[d], name_vector_[max_id[d]].c_str(), maxval[d]);
+        //}
+        printf("class_type:%d\n", class_type);
+        if (class_type == image::ClassifyRequest::CLASSIFY || class_type == image::ClassifyRequest::SEARCH) {
+          //只取前top_n_res
+  	      for (int d=kTopNumber-1; d>=kTopNumber-top_n_res; d--) {
+      			::image::ClassifyResult* result = response_message_.add_rsp_res();
+      			result->set_category_name(name_vector_[max_id[d]]);
+      			result->set_category_id(max_id[d]);
+      			result->set_category_weight(maxval[d]);
+  		    }
+        } else if (class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
+          //maxent classify
+          ME_Sample sample;
+          for (int d=kTopNumber-1; d>=0; d--) {
+            sample.add_feature(itoa(max_id[d]), maxval[d]);
+          }
+          for (size_t d=0; d<similarity_weight_vec_.size(); d++) {
+            sample.add_feature(itoa(4096+2000+d), similarity_weight_vec_[d]);
+          }
+          std::vector<double>  membp = me_model_.classify(sample);
+          std::vector< std::pair<std::string, float> > sort_vec;
+          for (int d=0; d<membp.size(); d++) {
+            sort_vec.push_back( std::make_pair(me_model_.get_class_label(d), membp[d]) );
+          }
+          std::sort(sort_vec.begin(), sort_vec.end(), SortMaxentResultVectorFunction);
+          //printf("membp size: %lu\n", membp.size());
+          
+          for (int d=0; d<sort_vec.size() && d<top_n_res; d++) {
+            ::image::ClassifyResult* result = response_message_.add_rsp_res();
+            int id = atoi(sort_vec[d].first.c_str());
+            result->set_category_name(paipai_name_vector_[id]);
+            result->set_category_id(id);
+            result->set_category_weight(sort_vec[d].second);
+            //printf("%d, %f\n", d, membp[d]);
+          }
         }
-	      for (int d=kTopNumber-1; d>=0; d--) {
-    			::image::ClassifyResult* result = response_message_.add_rsp_res();
-    			result->set_category_name(name_vector_[max_id[d]]);
-    			result->set_category_id(max_id[d]);
-    			result->set_category_weight(maxval[d]);
-		    }
-        
       }
   }
   return 0;
@@ -358,12 +426,13 @@ int ClassifyImpl::SortSearchResultMap(const SearchResultContainer & search_map, 
   return 0;
 }
 int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res) {
-  if (ImageClassify(filename, top_n_res, 1)!=0) {
+  if (ImageClassify(filename, top_n_res, image::ClassifyRequest::SEARCH)!=0) {
     return -1;
   }
   //according class id, search similarity images in the index.
   search_res_container_.clear();
   ImageCategoryIndex::iterator it;
+  printf("response_message_.rsp_res_size():%lu\n", response_message_.rsp_res_size());
   for (int i =0; i<response_message_.rsp_res_size() && i<FLAGS_top_n_limit; i++) {
     int class_id = response_message_.rsp_res(i).category_id();
     it = image_class_index_.find(class_id);
