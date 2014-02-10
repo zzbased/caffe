@@ -117,7 +117,7 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
   ifs.open(filename, std::ifstream::in);
   std::string line;
   std::vector<std::string> split_result;
-  int line_num;
+  int line_num = 0;
   while (getline(ifs, line)) {
     SplitString(line, " ", &split_result);
     //std::cout << split_result.size() << std::endl;
