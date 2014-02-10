@@ -11,6 +11,7 @@ DEFINE_string(maxent_model, "../../examples/paipai_model_23layer_8_feature", "Th
 DEFINE_bool(gpu, false, "use gpu for computation");
 DEFINE_int32(similarity_weight_layer, 20, "");
 DEFINE_string(image_index_file, "../../examples/index_image.dat", "image index file");
+//DEFINE_string(image_index_file, "../../examples/allpic_index_image.dat", "image index file");
 DEFINE_int32(top_n_limit, 5, "use top_n_limit");
 
 bool SplitString(const std::string& input, const std::string& split_char, std::vector<std::string>* split_result) 
@@ -116,13 +117,14 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
   ifs.open(filename, std::ifstream::in);
   std::string line;
   std::vector<std::string> split_result;
+  int line_num;
   while (getline(ifs, line)) {
     SplitString(line, " ", &split_result);
     //std::cout << split_result.size() << std::endl;
     //continue;
     int class_num = atoi(split_result[1].c_str());
     int weight_num = atoi(split_result[2].c_str());
-    if (class_num != 5 || weight_num != 4096 || split_result.size() != (4096+10+3)) {
+    if (class_num < 5 || weight_num != 4096 || split_result.size() != (3+2*class_num+weight_num)) {
       std::cerr << "format error:" << class_num << "," << class_num << "," << split_result.size() << std::endl;
       continue;
     }
@@ -142,7 +144,7 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
       continue;
     }
 
-    for (size_t i=3; i<3+class_num*2; i=i+2) {
+    for (size_t i=3; i<3+class_num*2 && i<3+FLAGS_top_n_limit*2; i=i+2) {
       int class_id = atoi(split_result[i].c_str());
       ImageCategoryIndex::iterator it1 = image_class_index_.find(class_id);
       if (it1 == image_class_index_.end()) {
@@ -153,6 +155,11 @@ int ClassifyImpl::LoadImageIndex(const char* filename) {
         it1->second.push_back(image_id);
       }
     }
+    line_num++;
+    if (line_num % 100000 == 0) {
+      printf("Load image index. line:%d\n", line_num);
+    }
+
   }
 
   std::cout << "image_uniquer_.size(): " << image_uniquer_.size() 
@@ -179,8 +186,13 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
     return -1;
   Datum datum;
   const static int kUndefinedLabel = 0;
+  try {
   if (!ReadImageToDatum(filename.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
     LOG(ERROR) << "ReadImageToDatum Error"; 
+    return -1;
+  }
+  } catch (...) {
+    fprintf(stderr, "Catch a exception! \n");
     return -1;
   }
   vector<Blob<float>*>& input_blobs = caffe_test_net_->input_blobs();
@@ -217,7 +229,7 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
   } else if (class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
     similarity_weight_vec_.clear();
     //store layer weight to calc similarity
-    //paipai分类器用第23层特征
+    //paipai分类器使用23层特征
     const vector<Blob<float>*>& weight_vec = caffe_test_net_->top_vecs_[23];
     for (size_t i=0; i<weight_vec[0]->count(); i++) {
       similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
@@ -307,8 +319,13 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
 
   Datum datum;
   const static int kUndefinedLabel = 0;
+  try {  
   if (!ReadImageToDatum(filename.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
     LOG(ERROR) << "ReadImageToDatum Error"; 
+    return -1;
+  }
+  } catch (...) {
+    fprintf(stderr, "Catch a exception! \n");
     return -1;
   }
   vector<Blob<float>*>& input_blobs = caffe_test_net_->input_blobs();
@@ -343,8 +360,13 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
 
   //another picture
   datum.Clear();
+  try {  
   if (!ReadImageToDatum(filename2.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
     LOG(ERROR) << "ReadImageToDatum Error"; 
+    return -1;
+  }
+  } catch (...) {
+    fprintf(stderr, "Catch a exception! \n");
     return -1;
   }
   input_blobs = caffe_test_net_->input_blobs();
@@ -426,7 +448,7 @@ int ClassifyImpl::SortSearchResultMap(const SearchResultContainer & search_map, 
   return 0;
 }
 int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res) {
-  if (ImageClassify(filename, top_n_res, image::ClassifyRequest::SEARCH)!=0) {
+  if (ImageClassify(filename, 5, image::ClassifyRequest::SEARCH)!=0) {
     return -1;
   }
   //according class id, search similarity images in the index.
