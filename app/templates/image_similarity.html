@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+
+{% block extrascript %}
+<script type="text/javascript">
+
+</script>
+{% endblock %}
+
+{% block imagesimilairty_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+广告素材相似度计算
+{% endblock %}
+
+{% block option_des %}
+利用deep auto encoding特征
+{% endblock %}
+
+
+{% block search_form %}
+
+  <div>
+
+      <form action="/upload/similarity" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="file" name="file2">
+        选取feature编号(不清楚实际意思的话,就用默认值): <input type="text" name="feature_layer" value="24"/>
+         <br /><br />
+        <input type="submit" value="Similarity">
+      </form>
+      <br /><br />
+      <form action="/testcase/11" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase1">
+      </form>
+      <form action="/testcase/12" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase2">
+      </form>
+  </div>
+
+
+
+{% endblock %}
+
+
+
+{% block output_name %}
+{% if pic_classify_result %}
+图片分类结果
+{% endif %}
+{% endblock %}
+
+
+{% block output_cont %}
+
+{% if pic_classify_result %}
+<div class="table-responsive">
+    <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>属性名</th>
+        <th>属性内容</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>素材图片</td>
+       <td><img src={{ori_image}}/></td>
+      </tr>
+      {% for item in  pic_classify_result%}
+      <tr>
+      <td>{{item.0}}</td>
+      <td>{{item.1}}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+
+
+{% endif %}
+
+{% endblock %}

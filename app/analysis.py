@@ -1,38 +1,7 @@
-import os,sys
-import socket
-import time
-import struct
-reload(sys)
-sys.setdefaultencoding('UTF-8')
-# 添加python lib include dir
-PROJECT_DIR = os.path.dirname(__file__)
-sys.path.append(os.path.join(PROJECT_DIR, 'pythonlib'))
-sys.path.append(os.path.join(PROJECT_DIR, 'proto'))
-# We'll render HTML templates and access data sent by POST
-# using the request object from flask. Redirect and url_for
-# will be used to redirect the user once the upload is done
-# and send_from_directory will help us to send/show on the
-# browser the file that the user just uploaded
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from config import *
+from base_route import *
 from werkzeug import secure_filename
 import image_interface_pb2
-
-# Initialize the Flask application
-app = Flask(__name__)
-
-# This is the path to the upload directory
-app.config['UPLOAD_FOLDER'] = 'uploads/'
-# These are the extension that we are accepting to be uploaded
-app.config['ALLOWED_EXTENSIONS'] = set(['png', 'jpg', 'jpeg', 'gif'])
-
-# Server address
-host='10.137.15.78'  #'10.135.14.15'
-port=33359  #5571
-kBufferLength = 100000
-ServerAddress = (host,port)
-
-# upload dir
-upload_dir="/data/vincentyao/appdemo/app/uploads/"
 
 # For a given file, return whether it's an allowed type or not
 def allowed_file(filename):
@@ -40,38 +9,22 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/classify')
-def classify():
-    return render_template('classify_index.html')
-
-@app.route('/similarity')
-def similarity():
-    return render_template('similarity_index.html')
-
-@app.route('/search')
-def search():
-    return render_template('search_index.html')
-
-@app.route('/semantic')
-def semantic():
-    return render_template('semantic_index.html')
-
-
-def classify_base(filename, model_choose):
+def classify_base(filename, imageurl, model_choose):
     #construct request
     request1 = image_interface_pb2.ClassifyRequest()
-    request1.file_name = upload_dir + filename
+    if len(filename) > 3:
+        request1.file_name = upload_dir + filename
+    elif len(imageurl) > 3:
+        request1.image_url = imageurl.encode('utf8')
+    else:
+        return "No Picture"
     request1.top_n_result = 5
     if model_choose == 0:
         request1.request_type = image_interface_pb2.ClassifyRequest.CLASSIFY
     elif model_choose == 1:
         request1.request_type = image_interface_pb2.ClassifyRequest.CLASSIFY_PAIPAI
     data = request1.SerializeToString()
-    print request1
+
     #tcp connect
     tcpCliSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcpCliSock.connect(ServerAddress)
@@ -80,11 +33,13 @@ def classify_base(filename, model_choose):
     proto_dat = image_interface_pb2.ClassifyResponse()
     succ = proto_dat.ParseFromString(data)
     tcpCliSock.close()
-    print proto_dat
+    #print proto_dat
+
     #package result page
+    return_filename = os.path.basename(proto_dat.classify_filename)
     returnbuf = "<!DOCTYPE html><html lang=\"en\"><head><link href=\"//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css\" rel=\"stylesheet\"></head>"
-    returnbuf += "<p><img src=\"/uploads/" + filename + "\"/></p>"
-    returnbuf += "<p>[" + filename + "]"  + " Classify result: (" + str(len(proto_dat.rsp_res)) + ")</p>"
+    returnbuf += "<p><img src=\"/uploads/" + return_filename + "\"/></p>"
+    returnbuf += "<p>[" + return_filename + "]"  + " Classify result: (" + str(len(proto_dat.rsp_res)) + ")</p>"
     returnbuf += "<br><table class=\"table table-bordered\"><thead><tr><th>category_name</th> <th>category_weight</th></tr></thead><tbody>"
     for result in proto_dat.rsp_res:
        returnbuf+="<tr><td>"
@@ -119,9 +74,14 @@ def similarity_base(filename, filename2, feature_layer):
 
     return returnbuf
 
-def search_base(filename, top_n_res, same_pic):
+def search_base(filename, imageurl, top_n_res, same_pic):
     request1 = image_interface_pb2.ClassifyRequest()
-    request1.file_name =  upload_dir + filename
+    if len(filename) > 3:
+        request1.file_name = upload_dir + filename
+    elif len(imageurl) > 3:
+        request1.image_url = imageurl.encode('utf8')
+    else:
+        return "No Picture"
     request1.top_n_result = top_n_res
     request1.request_type = image_interface_pb2.ClassifyRequest.SEARCH
     if same_pic == 0:
@@ -138,8 +98,9 @@ def search_base(filename, top_n_res, same_pic):
     tcpCliSock.close()
 
     #package result page
+    return_filename = os.path.basename(proto_dat.classify_filename)
     returnbuf = "<!DOCTYPE html><html lang=\"en\"><head><link href=\"//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css\" rel=\"stylesheet\"></head>"
-    returnbuf += "<p><img src=\"/uploads/" + filename + "\"/></p>"
+    returnbuf += "<p><img src=\"/uploads/" + return_filename + "\"/></p>"
     returnbuf += "<p>Search Result : [" + str(request1.top_n_result) + "]</p>"
     returnbuf += "<br><table class=\"table table-bordered\"><thead><tr><th>Image</th> <th>similarity_weight</th></tr></thead><tbody>"
     for result in proto_dat.search_res:
@@ -149,9 +110,14 @@ def search_base(filename, top_n_res, same_pic):
 
     return returnbuf
 
-def semantic_base(filename, top_n_res):
+def semantic_base(filename, imageurl, top_n_res):
     request1 = image_interface_pb2.ClassifyRequest()
-    request1.file_name =  upload_dir + filename
+    if len(filename) > 3:
+        request1.file_name = upload_dir + filename
+    elif len(imageurl) > 3:
+        request1.image_url = imageurl.encode('utf8')
+    else:
+        return "No Picture"
     request1.top_n_result = top_n_res
     request1.request_type = image_interface_pb2.ClassifyRequest.SEMANTIC
     data = request1.SerializeToString()
@@ -165,8 +131,9 @@ def semantic_base(filename, top_n_res):
     tcpCliSock.close()
 
     #package result page
+    return_filename = os.path.basename(proto_dat.classify_filename)
     returnbuf = "<!DOCTYPE html><html lang=\"en\"><head><link href=\"//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css\" rel=\"stylesheet\"></head>"
-    returnbuf += "<p><img src=\"/uploads/" + filename + "\"/></p>"
+    returnbuf += "<p><img src=\"/uploads/" + return_filename + "\"/></p>"
     returnbuf += "<p>Search Result : [" + str(request1.top_n_result) + "]</p>"
     returnbuf += "<table class=\"table table-bordered\"><thead><tr><th>token</th> <th>weight</th><th>token</th> <th>weight</th></tr></thead><tbody>"
     index=0
@@ -187,23 +154,26 @@ def semantic_base(filename, top_n_res):
 def upload_classify():
     # Get the name of the uploaded file
     file = request.files['file']
-    if len(file.filename) < 3:
-        return "No Picture!!!"
+    #if len(file.filename) < 3:
+    #    return "No Picture!!!"
+    filename = ""
     model_choose = request.form['model_choose']
+    imageurl = request.form['imageurl']
+
     # Check if the file is one of the allowed types/extensions
     if file and allowed_file(file.filename):
         # Make the filename safe, remove unsupported chars
         filename = secure_filename(file.filename)
         # Move the file form the temporal folder to the upload folder we setup
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # Redirect the user to the uploaded_file route, which will basicaly show on the browser the uploaded file
-        #return redirect(url_for('uploaded_file', filename=filename))
-        return classify_base(filename, int(model_choose))
+
+    # Redirect the user to the uploaded_file route, which will basicaly show on the browser the uploaded file
+    #return redirect(url_for('uploaded_file', filename=filename))
+    return classify_base(filename, imageurl, int(model_choose))
 
 # Route that will process the file upload
 @app.route('/upload/similarity', methods=['POST'])
 def upload_similarity():
-    # Get the name of the uploaded file
     file = request.files['file']
     if len(file.filename) < 3:
         return "No Picture!!!"
@@ -213,12 +183,11 @@ def upload_similarity():
 
     feature_layer = int(request.form['feature_layer'])
     print feature_layer
-    # Check if the file is one of the allowed types/extensions
+
     if file and allowed_file(file.filename):
-        # Make the filename safe, remove unsupported chars
         filename = secure_filename(file.filename)
         filename2 = secure_filename(file2.filename)
-        # Move the file form the temporal folder to the upload folder we setup
+
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
 
@@ -226,40 +195,34 @@ def upload_similarity():
 
 @app.route('/upload/search', methods=['POST'])
 def upload_search():
-    # Get the name of the uploaded file
     file = request.files['file']
-    if len(file.filename) < 3:
-        return "No Picture!!!"
+    #if len(file.filename) < 3:
+    #    return "No Picture!!!"
+    filename = ""
     top_n_res = request.form['top_n_res']
+    imageurl = request.form['imageurl']
     same_pic = request.form['detele_same_pic']
-    #print top_n_res,same_pic
-    # Check if the file is one of the allowed types/extensions
+
     if file and allowed_file(file.filename):
-        # Make the filename safe, remove unsupported chars
         filename = secure_filename(file.filename)
-        # Move the file form the temporal folder to the upload folder we setup
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # Redirect the user to the uploaded_file route, which will basicaly show on the browser the uploaded file
-        #return redirect(url_for('uploaded_file', filename=filename))
-        return search_base(filename, int(top_n_res), int(same_pic))
+
+    return search_base(filename, imageurl, int(top_n_res), int(same_pic))
 
 @app.route('/upload/semantic', methods=['POST'])
 def upload_semantic():
-    # Get the name of the uploaded file
     file = request.files['file']
-    if len(file.filename) < 3:
-        return "No Picture!!!"
+    #if len(file.filename) < 3:
+    #    return "No Picture!!!"
+    filename = ""
     top_n_res = request.form['top_n_res']
-
-    # Check if the file is one of the allowed types/extensions
+    imageurl = request.form['imageurl']
+    print imageurl
     if file and allowed_file(file.filename):
-        # Make the filename safe, remove unsupported chars
         filename = secure_filename(file.filename)
-        # Move the file form the temporal folder to the upload folder we setup
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # Redirect the user to the uploaded_file route, which will basicaly show on the browser the uploaded file
-        #return redirect(url_for('uploaded_file', filename=filename))
-        return semantic_base(filename, int(top_n_res))
+
+    return semantic_base(filename, imageurl, int(top_n_res))
 
 @app.route('/testcase/<int:test_id>', methods=['POST'])
 def testcase(test_id):
@@ -287,22 +250,6 @@ def testcase(test_id):
     else:
         return "Hello World"
 
-# This route is expecting a parameter containing the name
-# of a file. Then it will locate that file on the upload
-# directory and show it on the browser, so if the user uploads
-# an image, that image is going to be show after the upload
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'],
-                               filename)
-
-@app.route('/site_media/<filename>')
-def site_media(filename):
-    return send_from_directory("site_media/", filename)
-
-@app.route('/gdt_media/<filename>')
-def gdt_media(filename):
-    return send_from_directory("gdt_media/", filename)
 
 if __name__ == '__main__':
     app.run(

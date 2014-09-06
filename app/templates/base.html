@@ -2,21 +2,21 @@
 <html>
   <head>
   <meta charset="utf-8" />
-<meta http-equiv="Content-Language" content="zh-cn" />
+  <meta http-equiv="Content-Language" content="zh-cn" />
 
-    <title>应用宝广告文本分析</title>
+    <title>广点通-广告分析平台</title>
 
     <!-- Bootstrap core CSS -->
     <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="/static/dashboard.css" rel="stylesheet">
-	<link href="/static/justified-nav.css" rel="stylesheet">
+    <link href="/static/justified-nav.css" rel="stylesheet">
 
-	<!--
+  <!--
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="/static/bootstrap/js/bootstrap.min.js"></script>
-	-->
+  -->
 	<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
 {% block extrascript %}{% endblock %}
   </head>
@@ -32,7 +32,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/yybadinfo/">应用宝广告文本分析@创意优化组</a>
+          <a class="navbar-brand" href="/">广点通-广告分析平台@创意优化组</a>
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
@@ -53,12 +53,18 @@
 
         <div class="col-sm-3 col-md-2 sidebar">
           <ul class="nav nav-sidebar">
-            <li class={% block yybadinfo_active %}{% endblock %}><a href="/yybadinfo/">广告内容分析</a></li>
-            <!-- <li class={% block yybadrand_active %}{% endblock %}><a href="/yybadrand/">广告内容随机浏览</a></li> -->
-			<!-- <li class={% block picclass_active %}{% endblock %}><a href="/picclass/">图片分类</a></li> -->
-			<li class="divider"></li>
+            <li class={% block imageclassify_active %}{% endblock %}><a href="/image_classify/">广告图片分类</a></li>
+            <li class={% block imagesimilairty_active %}{% endblock %}><a href="/image_similarity/">广告素材相似度计算</a></li>
+            <li class={% block imagesearch_active %}{% endblock %}><a href="/image_search/">广告图片搜索</a></li>
+            <li class={% block imagesemantic_active %}{% endblock %}><a href="/image_semantic/">广告图片语义tag分析</a></li>
+            <li><a href="/ad_classify/">广告分类</a></li>
+            <li><a href="/text_analysis/">广告文本特征分析</a></li>
+            <li><a href="/context_analysis/">广告LandingPage分析</a></li>
+            <li><a href="/query_analysis/">query分析服务</a></li>
+            <li class={% block yybadrand_active %}{% endblock %}><a href="/yybadinfo/">应用宝广告内容分析</a></li>
+            <li class="divider"></li>
           </ul>
-		  
+
         </div>
 
 		<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -76,14 +82,14 @@
 					{% block error_infos %}
 					  {% for error in errors %}
 					  <p style='color:#FF0000'>{{ error }}</p>
-					  {% endfor %}	 
+					  {% endfor %}
 					{% endblock %}
 
 				{% else %}
 				<h2 class="sub-header">{% block output_name %}{% endblock %}</h2>
-				
+
 					{% block output_cont %}{% endblock %}
-				
+
 				{% endif %}
 			</div>
 		</div>
