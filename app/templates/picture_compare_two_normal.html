@@ -1,0 +1,115 @@
+{% extends "picture_compare_two.html" %}
+
+
+{% block extrascript %}
+
+<script type="text/javascript">
+function CheckSelect(id, thisform)  
+{  
+	var length = thisform.elements.length;
+	if (id.checked === false)
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "piccomp" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = false;
+			  }  
+		}  
+		id.checked = false;
+	}
+	else
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "piccomp" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = true;
+			  }  
+		}  
+		id.checked = true;
+	}
+ 
+}
+</script>
+
+{% endblock %}
+
+{% block normal_active %}
+"active"
+{% endblock %}
+
+{% block compare_method %} 
+
+<form class="form" action="/piccomptwo/normal/" method="post" enctype="multipart/form-data">	
+
+	<div class="col-md-12">
+		<div class="row">
+			<label>
+			  <input type="checkbox" OnClick="CheckSelect(this, this.form) ; " >全选/反选
+			</label>
+		</div>
+		<div class="row">
+
+				
+				{% for item in checkbox_dict %}
+					
+					<div class="fields">
+					<label class="checkbox col-md-12">
+					  <input type="checkbox" id="piccomp" value={{item.0}} name={{item.0}} {% if item.2 == "1" %}checked=true{% else %}{% endif %}>{{item.1}}
+					</label>
+						<em>{{item.3}}</em>
+					</div>
+					
+					
+				{% endfor %}
+				</p>
+		</div>
+	</div>
+
+	<label>
+		<button type="submit" class="btn btn-md btn-primary">确定</button>
+	</label>
+
+</form>
+
+{% endblock %}
+
+
+
+{% block output_name %}
+{% if pic_comp_result %}
+图片相似度比较结果
+{% endif %}
+{% endblock %}
+
+
+
+{% block output_cont %}
+{% if pic_comp_result %}
+	<div class="table-responsive">
+		<table class="table table-striped">
+		<thead>
+			<tr>
+			  <th>比较算法</th>
+			  <th>相似度</th>
+			  <th>运行时间(s)</th>
+			</tr>
+		  </thead>
+		  <tbody>
+		  
+		  {% for item in  pic_comp_result%}
+			<tr>
+			<td>{{item.0}}</td>
+			<td>{{item.1}}</td>
+			<td>{{item.2}}</td>
+			</tr>
+		  {% endfor %}
+		  </tbody>
+		</table>
+	</div>
+{% endif %}
+
+{% endblock %}

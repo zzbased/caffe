@@ -1,0 +1,74 @@
+#-*- coding:utf-8 -*-
+import os,random
+from flask import render_template,request, make_response
+from app import app
+from werkzeug import secure_filename
+from app.midware.picture_dissim_feedback import generate_picture_pair
+import lib
+
+
+@app.route('/pic_dissim_feedback/', methods=['GET', 'POST'])
+def pic_dissim_feedback():
+	render_dict={}
+	if request.method == 'POST':
+		try:
+			dissim_list = request.files['dissim_list']
+			if len(dissim_list.filename) > 0:
+				filename = str(random.random())
+				media_name = os.path.join(app.config['UPLOAD_DIR'],filename)
+				dissim_list.save(media_name)
+				pic_dissim_index = 0
+				render_dict['has_dissim_list'] = True
+			else:
+				return render_template('picture_dissim_feedback.html', **render_dict)
+		except :
+			render_dict['has_dissim_list'] = True
+			media_name = request.cookies.get('dissim_list_name')
+			pic_dissim_index = int(request.cookies.get('pic_dissim_index'))
+			pic_group_num = int(request.cookies.get('pic_group_num'))
+			
+			result_file_name = os.path.join(app.config['TMPFILE_DIR'], os.path.split(media_name)[-1]+'_result')
+			result_file = open(result_file_name, 'a')
+			dissim_num = 0
+			for i in range(pic_group_num):
+				score = request.form.get('radio'+str(i))
+				if score is None:
+					continue
+				pic1 = request.cookies.get('.'.join(['dissim_pic', str(i), '1']))
+				pic2 = request.cookies.get('.'.join(['dissim_pic', str(i), '2']))
+				if score == "1":
+					dissim_num += 1
+				#cmd = 'echo "'+' '.join([pic1, pic2, str(score)])+'" >> '+ app.config['PIC_SIM_MANUAL_RESULT']
+				#print cmd
+			#os.system(cmd)
+			result_file.write(' '.join([str(pic_group_num), str(dissim_num)]) + '\n')
+			result_file.close()
+		pic_group_num = app.config['PIC_DISSIM_FEEDBACK_NUM']
+		pic_pair_group,pic_dissim_index = generate_picture_pair(media_name, pic_group_num, pic_dissim_index)
+
+		if pic_dissim_index == -2:
+			render_dict['has_dissim_list'] = False
+			render_dict['total']=pic_pair_group[0]
+			render_dict['dissim']=pic_pair_group[1]
+			render_dict['dissim_rate']=pic_pair_group[2]
+			print pic_pair_group[2]
+			return render_template('picture_dissim_feedback.html', **render_dict)
+			
+		for i in range(len(pic_pair_group)):
+			pic_pair_group[i].append('radio'+str(i))
+
+
+		render_dict['pic_pair_group'] = pic_pair_group
+
+		resp = make_response(render_template('picture_dissim_feedback.html', **render_dict))
+		resp.set_cookie('dissim_list_name', media_name)
+		resp.set_cookie('pic_dissim_index', str(pic_dissim_index))
+		resp.set_cookie('pic_group_num', str(len(pic_pair_group)))
+
+		for i in range(len(pic_pair_group)):
+			pic1 = '.'.join(['dissim_pic', str(i), '1'])
+			pic2 = '.'.join(['dissim_pic', str(i), '2'])
+			resp.set_cookie(pic1, pic_pair_group[i][0])
+			resp.set_cookie(pic2, pic_pair_group[i][1])
+		return resp
+	return render_template('picture_dissim_feedback.html', **render_dict)

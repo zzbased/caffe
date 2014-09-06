@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block pic_dissim_feedback_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片相似度反馈
+{% endblock %}
+
+{% block search_form %} 
+
+
+<form class="form" action="{{this_url}}" method="post" enctype="multipart/form-data">
+{% if has_dissim_list %}
+<div class="col-md-12">
+<div class="row">
+{% for item in pic_pair_group %}
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">第{{loop.index}}组</h3>
+		</div>
+
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+					<tr>
+					<td><img class="img-polaroid" name="pic1" src={{item.0}}/></td>
+					<td><img class="img-polaroid" name="pic2" src={{item.1}}/></td>
+					</tr>
+				</table>
+			</div>	
+
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="{{item.2}}" checked=true value="0">
+				相似
+			  </label>
+			</div>
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="{{item.2}}" value="1">
+				不相似
+			  </label>
+			</div>
+		</div>
+
+	 </div>
+{% endfor %}
+</div>	
+</div>
+
+	<label>
+		<button type="submit" class="btn btn-md btn-primary">下一页({{cur_line}}/{{total_line}})</button>
+	</label>
+{% else %}
+{% if total %}
+总图片对数: {{total}}</br>
+不相似图片对数：{{dissim}}</br>
+不相似图片比例：{{dissim_rate}}
+{% endif %}
+{% endif %}
+</form>
+{% endblock %}

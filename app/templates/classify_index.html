@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h3 class="text-muted">Image Classification Demo</h3>
+      </div>
+      <hr/>
+      <div>
+      
+      <form action="upload/classify" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        选择分类模型: <select name="model_choose">
+                            <option value ="0">Imagenet Model</option>
+                            <option value ="1">Paipai Model</option>
+                        </select>
+        <br /><br />
+        <input type="submit" value="Classify">
+      </form>
+      <br /><br />
+      <form action="testcase/1" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase1">
+      </form>
+      <form action="testcase/2" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase2">
+      </form>      
+      </div>
+    </div>
+  </body>
+</html>
+ 

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h3 class="text-muted">Image Search Demo</h3>
+      </div>
+      <hr/>
+      <div>
+      
+      <form action="upload/search" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        Top-N检索结果: <input type="text" name="top_n_res" value="5"/>
+        <br>
+        是否包括相同图片: <select name="detele_same_pic">
+                            <option value ="1">Has same pic</option>
+                            <option value ="0">No same pic</option>
+                        </select>
+        <br /><br />
+        <input type="submit" value="Search">
+      </form>
+      <br /><br />
+      <form action="testcase/21" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase1">
+      </form>
+      <form action="testcase/22" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase2">
+      </form>     
+      </div>
+    </div>
+  </body>
+</html>
+ 

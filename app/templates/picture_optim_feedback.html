@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block extrascript %}
+<script type="text/javascript">
+
+
+score = new Array();
+
+function PageFlush()
+{
+		window.location = '/picoptimfeedback/';
+}
+function ScoreSubmit(submit_size)
+{
+	xmlHttp = new XMLHttpRequest();  
+	var url = "/picoptimfeedback/";  
+	
+	xmlHttp.open("POST", url, true); 
+	xmlHttp.onreadystatechange = PageFlush;
+	
+	xmlHttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	var send_cont;
+	send_cont = "score0="+score[0];
+	for (var i=1; i<submit_size; i++)
+	{
+		send_cont += "&score"+(i)+"="+score[i] ;
+	}
+	xmlHttp.send(send_cont); 
+
+	var score_button = scoreStarsButton.getElementsByTagName("button")[0];
+	score_button.class = "btn btn-md";
+	score_button.disabled = "disabled";
+}
+
+
+function ChangeState(index, name, isfixed, no){
+		
+		 scoreStars = document.getElementById('scoreStars'+name)
+         var colStars = scoreStars.getElementsByTagName("input");
+         var i = 0;
+         var k = isfixed? score[no] : index;
+
+         for(i=0; i<colStars.length; i++){
+                 colStars[i].src = (i<k? "/static/pics/st.gif" : "/static/pics/nst.gif");
+         }
+}
+
+function Click(index, name, no)
+{
+		score[no] = index;
+}
+
+function MouseOver(index, name, no){
+         ChangeState(index,name,false, no);
+}
+
+function MouseOut(name, no){
+         ChangeState(0,name,true, no);
+}
+
+</script>
+
+
+{% endblock %}
+
+
+
+
+{% block pic_optim_feedback_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+素材一键优化
+{% endblock %}
+
+
+
+{% block search_form %} 
+
+{% if adjust_para %}
+<div class="col-md-2">
+	<p>
+		<label for="luma_abs">亮度绝对值调节参数</label>
+		<input type="text" name="luma_abs" id="luma_abs" class="form-control" placeholder="亮度绝对值调节" value=5>
+	</p>
+</div>
+<div class="col-md-2">
+	<p>
+		<label for="contra">对比度调节参数</label>	
+		<input type="text" name="contra" id="contra" class="form-control" placeholder="对比度调节" value=5>	  
+	</p>
+</div>
+{% else %}
+{% endif %}
+
+
+	<div class="row">
+		<div class="panel panel-primary">
+
+			<div class="panel-heading">
+			  <h3 class="panel-title">原图片</h3>
+			</div>
+
+			<div class="panel-body">					
+					<p><img class="img-polaroid" name="ori_pic" src={{ori_image}}/></p>
+			</div>
+
+		 </div>
+	</div>
+
+	<div class="row">
+		<div class="panel panel-primary">
+				 <div class="panel-heading">
+					<h3 class="panel-title">优化结果</h3>
+				 </div>
+				<div class="panel-body">
+					<div class="table-responsive">
+						<table class="table table-striped">
+
+							<thead>
+							<tr>
+							  {% for item in pic_optim_result %}
+							  <td>
+							  {{item.1}}
+							  </td>
+							  {% endfor %}
+							</tr>
+							</thead>
+							<tbody>
+							<tr>
+							{% for item in pic_optim_result %}
+							<td>
+								<p><img class="img-polaroid" src={{item.2}}/></p>
+								<p>
+								<div id="scoreStars{{item.0}}">
+									<input type="image" id={{item.0}} name={{item.0}} src="/static/pics/nst.gif" onClick="Click(1, '{{item.0}}', {{loop.index0}})" onMouseOver = "MouseOver(1, '{{item.0}}', {{loop.index0}})" onMouseOut="MouseOut('{{item.0}}', {{loop.index0}})">
+									<input type="image" id={{item.0}} name={{item.0}} src="/static/pics/nst.gif" onClick="Click(2, '{{item.0}}', {{loop.index0}})" onMouseOver = "MouseOver(2, '{{item.0}}', {{loop.index0}})" onMouseOut="MouseOut('{{item.0}}', {{loop.index0}})">
+									<input type="image" id={{item.0}} name={{item.0}} src="/static/pics/nst.gif" onClick="Click(3, '{{item.0}}', {{loop.index0}})" onMouseOver = "MouseOver(3, '{{item.0}}', {{loop.index0}})" onMouseOut="MouseOut('{{item.0}}', {{loop.index0}})">
+									<input type="image" id={{item.0}} name={{item.0}} src="/static/pics/nst.gif" onClick="Click(4, '{{item.0}}', {{loop.index0}})" onMouseOver = "MouseOver(4, '{{item.0}}', {{loop.index0}})" onMouseOut="MouseOut('{{item.0}}', {{loop.index0}})">
+									<input type="image" id={{item.0}} name={{item.0}} src="/static/pics/nst.gif" onClick="Click(5, '{{item.0}}', {{loop.index0}})" onMouseOver = "MouseOver(5, '{{item.0}}', {{loop.index0}})" onMouseOut="MouseOut('{{item.0}}', {{loop.index0}})">
+								</div>
+								</p>
+							</td>
+							{% endfor %}
+							</tr>
+							</tbody>
+						</table>
+					</div>
+					</div>
+				</div>
+			<p>
+				<div id="scoreStarsButton">
+				<label>
+					<button name="score_submit" type="button" class="btn btn-md btn-primary" onClick="ScoreSubmit({{optim_method_num}})">下一组</button>
+				</label>
+				</div>
+			</p>
+	</div>
+
+{% endblock %}

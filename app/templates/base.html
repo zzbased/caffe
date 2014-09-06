@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8" />
+<meta http-equiv="Content-Language" content="zh-cn" />
+
+    <title>应用宝广告文本分析</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/static/dashboard.css" rel="stylesheet">
+	<link href="/static/justified-nav.css" rel="stylesheet">
+
+	<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+	-->
+	<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+{% block extrascript %}{% endblock %}
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/yybadinfo/">应用宝广告文本分析@创意优化组</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">设置</a></li>
+            <li><a href="#">个人信息</a></li>
+            <li><a href="#">帮助</a></li>
+          </ul>
+          <form class="navbar-form navbar-right">
+            <input type="text" class="form-control" placeholder="Search...">
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li class={% block yybadinfo_active %}{% endblock %}><a href="/yybadinfo/">广告内容分析</a></li>
+            <!-- <li class={% block yybadrand_active %}{% endblock %}><a href="/yybadrand/">广告内容随机浏览</a></li> -->
+			<!-- <li class={% block picclass_active %}{% endblock %}><a href="/picclass/">图片分类</a></li> -->
+			<li class="divider"></li>
+          </ul>
+		  
+        </div>
+
+		<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+			<div class="row page-header">
+				<h2>{% block option_name %}{% endblock %}</h2>
+				<em>{% block option_des %}{% endblock %}</em>
+			</div>
+			<div class="row">
+				{% block search_form %}{% endblock %}
+			</div>
+
+			<div class="row">
+				{% if errors %}
+				<h3 class="sub-header" style='color:#FF0000'>错误</h2>
+					{% block error_infos %}
+					  {% for error in errors %}
+					  <p style='color:#FF0000'>{{ error }}</p>
+					  {% endfor %}	 
+					{% endblock %}
+
+				{% else %}
+				<h2 class="sub-header">{% block output_name %}{% endblock %}</h2>
+				
+					{% block output_cont %}{% endblock %}
+				
+				{% endif %}
+			</div>
+		</div>
+
+      </div>
+    </div>
+
+
+  </body>
+</html>

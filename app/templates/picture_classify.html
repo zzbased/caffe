@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+
+{% block extrascript %}
+<script type="text/javascript">
+
+</script>
+{% endblock %}
+
+{% block picclass_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片分类
+{% endblock %}
+
+{% block option_des %}
+图片分类: Imagenet数据训练,共1000个分类 or 拍拍商品数据训练,共75个分类
+{% endblock %}
+
+
+{% block search_form %} 
+
+<form class="form" action="/picclass/" method="post" enctype="multipart/form-data">	
+	<div class="col-md-4">
+		<div class="row" style="line-height:22px">
+			<p>
+				选择分类模型
+			</p>
+		</div>
+		<div class="row">
+			<label>
+			<select class="form-control" name="model_choose">
+			 {% for item in method_select %}
+			 <option value={{item.0}} {% if item.0 == method_choose %}selected="selected"{% else %}{% endif %}>{{item.1}}</option>
+			 {% endfor %}
+			  
+			</select>
+			</label>
+		</div>
+	</div>
+	<div class="col-md-6">
+		<div class ="row">
+			<p>
+				
+			<label class="file">
+				<input type="file" name="pic" id="file" value="上传">
+			</label>
+				
+			</p>
+			<p>
+			<label>
+				<button type="submit" class="btn btn-md btn-primary">上传图片</button>
+			</label>
+			</p>
+			
+		</div>
+		<div class ="row">
+			<p>
+				<a class="btn btn-md btn-success" href="/picclass/test1/" role="button">样例1</a>
+				<a class="btn btn-md btn-success" href="/picclass/test2/" role="button">样例2</a>
+			</p>
+		</div>
+	</div>
+	
+
+</form>
+{% endblock %}
+
+
+{% block output_name %}
+{% if pic_classify_result %}
+图片分类结果
+{% endif %}
+{% endblock %}
+
+
+{% block output_cont %}
+
+{% if pic_classify_result %}
+<div class="table-responsive">
+		<table class="table table-striped">
+		<thead>
+			<tr>
+			  <th>属性名</th>
+			  <th>属性内容</th>
+			</tr>
+		  </thead>
+		  <tbody>
+		  <tr>
+		  <td>素材图片</td>
+			 <td><img src={{ori_image}}/></td>
+		  </tr>
+		  {% for item in  pic_classify_result%}
+			<tr>
+			<td>{{item.0}}</td>
+			<td>{{item.1}}</td>
+			</tr>
+		  {% endfor %}
+		  </tbody>
+		</table>
+	</div>
+
+
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block pic_sim_man_score_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片相似度打分
+{% endblock %}
+
+{% block search_form %} 
+
+<form class="form" action="/pic_sim_man_score/" method="post" enctype="multipart/form-data">
+<div class="col-md-12">
+<div class="row">
+{% for item in pic_pair_group %}
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">第{{loop.index}}组</h3>
+		</div>
+
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+					<tr>
+					<td><img class="img-polaroid" name="pic1" src={{item.0}}/></td>
+					<td><img class="img-polaroid" name="pic2" src={{item.1}}/></td>
+					</tr>
+				</table>
+			</div>	
+
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="{{item.2}}" value="0">
+				相似
+			  </label>
+			</div>
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="{{item.2}}" value="1">
+				不相似
+			  </label>
+			</div>
+		</div>
+
+	 </div>
+{% endfor %}
+</div>	
+</div>
+
+	<label>
+		<button type="submit" class="btn btn-md btn-primary">下一组</button>
+	</label>
+</form>
+
+
+{% endblock %}

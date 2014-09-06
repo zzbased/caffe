@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block extrascript %}
+<script type="text/javascript">
+
+function PageFlush()
+{
+		window.location = '/picoptim/choosemethod/';
+}
+function ScoreSubmit()
+{
+	xmlHttp = new XMLHttpRequest();  
+	var url = "/picoptim/choosemethod/";  
+	
+	xmlHttp.open("POST", url, true); 
+	//xmlHttp.onreadystatechange = PageFlush;
+	
+	xmlHttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	xmlHttp.send("score="+this.score); 
+
+	var score_button = scoreStars.getElementsByTagName("button")[0];
+	score_button.class = "btn btn-md"
+	score_button.disabled = "disabled"
+}
+
+
+function ChangeState(index, isfixed){
+         var colStars = scoreStars.getElementsByTagName("input");
+         var i = 0;
+         var k = isfixed? this.score : index;
+
+         for(i=0; i<colStars.length; i++){
+                 colStars[i].src = (i<k? "/static/pics/st.gif" : "/static/pics/nst.gif");
+         }
+}
+
+function Click(index)
+{
+		this.score = index;
+}
+
+function MouseOver(index){
+         ChangeState(index,false);
+}
+
+function MouseOut(){
+         ChangeState(0,true);
+}
+
+
+</script>
+
+
+{% endblock %}
+
+
+
+
+{% block pic_optim_man_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+素材一键优化
+{% endblock %}
+
+
+
+{% block search_form %} 
+<form class="form" action="/picoptim/" method="post" enctype="multipart/form-data">	
+	<div class="col-md-6">
+		<div class ="row">
+			<p>
+				
+			<label class="file">
+				<input type="file" name="pic" id="file" value="上传">
+			</label>
+				
+			</p>
+			<p>
+			<label>
+				<button type="submit" class="btn btn-md btn-primary">上传图片</button>
+			</label>
+			</p>
+			
+		</div>
+		<div class ="row">
+			<p>
+				<a class="btn btn-md btn-success" href="/picoptim/test1/" role="button">样例1</a>
+				<a class="btn btn-md btn-success" href="/picoptim/test2/" role="button">样例2</a>
+			</p>
+		</div>
+	</div>
+</form>
+
+{% endblock %}
+
+
+
+{% block output_cont %}
+{% if optim_method_select %}
+	<div class="row">
+		<div class="panel panel-primary">
+
+            <div class="panel-heading">
+              <h3 class="panel-title">选择优化方法</h3>
+            </div>
+
+            <div class="panel-body">
+              <p><img class="img-polaroid" name="ori_pic" src={{ori_image}}/></p>
+
+				<form class="form" action="/picoptim/choosemethod/" method="post" enctype="multipart/form-data">	
+					<label>
+						<select class="form-control" name="optim_method_choose">
+						 {% for item in optim_method_select %}
+						 <option value={{item.0}} {% if optim_method_choose == item.0 %} selected {% else %}{% endif %}>{{item.1}}</option>
+						 {% endfor %}
+						</select>
+					</label>
+
+					<label>
+						<button type="submit" class="btn btn-md btn-primary">一键优化</button>
+					</label>
+				</form>
+            </div>
+
+         </div>
+	</div>
+	<div class="row">
+		 {% if pic_optim_result %}
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+				  <h3 class="panel-title">{{pic_optim_result.0}}</h3>
+				</div>
+				<div class="panel-body">
+					
+				  <p><img class="img-polaroid" src={{pic_optim_result.1}}/></p>
+					<p>
+						<div id="scoreStars">
+						{% for i in optim_feedback_score_range %}
+							<input type="image" name="scorestar" src="/static/pics/nst.gif" onClick="Click({{i}})" onMouseOver = "MouseOver({{i}})" onMouseOut="MouseOut()">
+						{% endfor %}
+						</p>
+						<p>
+							<label>
+								<button name="score_submit" type="button" class="btn btn-md btn-primary" onClick="ScoreSubmit()">提交</button>
+							</label>
+						</p>	
+						</div>
+				</div>
+			</div>
+		 {% endif %}
+	</div>
+{% endif %}
+{% endblock %}

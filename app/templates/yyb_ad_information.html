@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+
+{% block extrascript %}
+
+<script type="text/javascript">
+
+
+function CheckSelect(id, thisform)  
+{  
+	var length = thisform.elements.length;
+	if (id.checked === false)
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "picinfo" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = false;
+			  }  
+		}  
+		id.checked = false;
+	}
+	else
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "picinfo" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = true;
+			  }  
+		}  
+		id.checked = true;
+	}
+ 
+}
+</script>
+
+{% endblock %}
+
+
+{% block option_des %}
+输入appid，输出应用宝广告的分析结果
+{% endblock %}
+
+{% block option_name %}
+应用宝广告内容分析
+{% endblock %}
+
+{% block yybadinfo_active %}
+"active"
+{% endblock %}
+
+{% block search_form %} 
+
+<form class="form" action="/yybadinfo/" method="post" enctype="multipart/form-data">	
+
+	<div class="col-md-4">
+		<div class="row">
+		   <p>
+			<input type="text" class="form-control" id="appid" name="appid" placeholder={%if app_ad_analysis_result %}{{app_ad_analysis_result.appid}} {% else %}"请输入appid"{% endif %}>
+			</p>
+		</div>
+		<div class="row">
+			<p>
+			<label>
+				<button type="submit" class="btn btn-md btn-primary">分析</button>
+			</label>
+			</p>
+			
+		</div>
+		<div class ="row">
+			<p>
+				<a class="btn btn-md btn-success" href="/yybadinfo/random/" role="button">随机广告</a>
+			</p>
+		</div>
+	</div>
+
+
+</form>
+
+{% endblock %}
+
+{% block output_name %}
+{% if app_ad_analysis_result %}
+广告内容分析结果
+{% endif %}
+{% endblock %}
+
+
+{% block output_cont %}
+{% if app_ad_analysis_result %}
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">app广告信息</h3>
+		</div>
+
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <th>属性名</th>
+					  <th>属性内容</th>
+					</tr>
+				  </thead>
+				  <tbody>
+					<tr>
+					<td>appid</td>
+					<td>{{app_ad_analysis_result.appid}}</td>
+					</tr>
+					<tr>
+					<td>app名</td>
+					<td>{{app_ad_analysis_result.appname.name}}</td>
+					</tr>
+					<tr>
+					<td>描述</td>
+					<td>{{app_ad_analysis_result.des}}</td>
+					</tr>
+					<tr>
+					<td>keyword 个数</td>
+					<td>{{keynum}}</td>
+					</tr>
+				  </tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel panel-primary">
+		<div class="panel-heading">
+		  <h3 class="panel-title">app名分析结果</h3>
+		</div>
+
+		<div class="table-responsive">
+			<table class="table table-striped span12">
+			<thead>
+				<tr>
+				  <th>属性名</th>
+				  <th>属性内容</th>
+				</tr>
+			  </thead>
+
+			  <tbody>
+			  
+				<tr>
+				<td>app名</td>
+				<td>{{app_ad_analysis_result.appname.name}}</td>	
+				</tr>
+
+				<tr>
+				<td>app名topic分析结果</td>
+				<td>
+				{% for item in app_ad_analysis_result.appname.topic %}
+					[{{item.0}}, {{item.1}}]
+				{% endfor %}
+				</td>
+				</tr>
+                
+				<tr bgcolor="#ffffff">
+				<td>app名category分析结果</td>
+				<td>
+				{% for item in app_ad_analysis_result.appname.category %}
+					[{{item.0}}, {{item.1}}]
+				{% endfor %}
+				</td>
+				</tr>
+			 
+			  </tbody>
+			</table>
+		</div>
+	</div>
+	
+	{% for item in app_ad_analysis_result.keyword %}
+		<div class="panel panel-primary">
+
+			<div class="panel-heading">
+			  <h3 class="panel-title">keyword {{loop.index}}</h3>
+			</div>
+
+			<div class="table-responsive">
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <th>属性名</th>
+					  <th>属性内容</th>
+					</tr>
+				  </thead>
+
+				  <tbody>
+				  <tr>
+				  <td>keyword</td>
+				  <td>{{item.word}}</td>
+				  </tr>
+				  <tr>
+				  <td>权重</td>
+				  <td>{{item.weight}}</td>
+				  </tr>
+				  <tr>
+				  <td>子相似度</td>
+				  <td>
+				  [lcs, {{item.lcs}}] [common_word, {{item.common}}] [edit_distance, {{item.edit}}] [cosin, {{item.cos}}] [tanimoto, {{item.tanimoto}}] [topic_sim, {{item.topic_sim}}] [category_sim, {{item.cat_sim}}]
+				  </td>
+				  </tr>
+				  <tr>
+				  <td>topic分析结果</td>
+				  <td>
+					{% for i in item.topic %}
+					[<font color={{i.2}}>{{i.0}}</font>, {{i.1}}]
+					    
+					{% endfor %}
+					</td>
+			       </tr>
+				 <tr bgcolor="green">
+				  <td>category分析结果</td>
+				  <td>
+					{% for i in item.category %}
+						[<font color={{i.2}}>{{i.0}}</font>, {{i.1}}]
+					{% endfor %}
+					</td>
+			       </tr>
+				  </tbody>
+				</table>
+			</div>
+		</div>
+	{% endfor %}
+{% endif %}
+{% endblock %}
+
+

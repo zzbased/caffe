@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block picture_search_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片检索
+{% endblock %}
+
+{% block option_des %}
+搜索相同或相似图片
+{% endblock %}
+
+
+{% block search_form %} 
+
+<form class="form" action="/picsearch/" method="post" enctype="multipart/form-data">	
+	<div class="col-md-4">
+			<div class ="row">
+				<p>
+				<label class="file">
+					<input type="file" name="pic" id="file" value="上传">
+				</label>
+				</p>
+			
+				<p>
+				<label>
+					<button type="submit" class="btn btn-md btn-primary">上传图片</button>
+				</label>
+				</p>
+			</div>
+			
+		
+			<div class ="row">
+				<p>
+					<a class="btn btn-md btn-success" href="/picsearch/test1/" role="button">样例1</a>
+					<a class="btn btn-md btn-success" href="/picsearch/test2/" role="button">样例2</a>
+				</p>
+			</div>
+	</div>
+
+	<div class="col-md-6">
+
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="has_same" value="0" checked>
+				不包含相同图片
+			  </label>
+			</div>
+			<div class="radio-inline">
+			  <label>
+				<input type="radio" name="has_same" value="1">
+				包含相同图片
+			  </label>
+			</div>
+
+			<p>
+			<label for="result_topn">返回结果个数</label>
+			 <input type="text" name="result_topn" id="result_topn" class="form-control" placeholder="返回结果个数" value=5>
+			</p>
+		  </div>
+</form>
+
+{% endblock %}

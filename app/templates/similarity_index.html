@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h3 class="text-muted">Image Similarity Demo</h3>
+      </div>
+      <hr/>
+      <div>
+      
+      <form action="upload/similarity" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="file" name="file2">
+        选取feature编号(不清楚实际意思的话,就用默认值): <input type="text" name="feature_layer" value="24"/>
+	       <br /><br />
+        <input type="submit" value="Similarity">
+      </form>
+      <br /><br />
+      <form action="testcase/11" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase1">
+      </form>
+      <form action="testcase/12" method="post" enctype="multipart/form-data">
+        <input type="submit" value="TestCase2">
+      </form>       
+      </div>
+    </div>
+  </body>
+</html>
+ 

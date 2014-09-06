@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+
+{% block extrascript %}
+
+<script type="text/javascript">
+
+
+function CheckSelect(id, thisform)  
+{  
+	var length = thisform.elements.length;
+	if (id.checked === false)
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "piccomp" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = false;
+			  }  
+		}  
+		id.checked = false;
+	}
+	else
+	{
+		for ( var i = 0; i < length; i++)  
+		{  
+			  var checkbox = thisform.elements[i]; 
+			  if (checkbox.id === "piccomp" && checkbox.type === "checkbox")  
+			  {  
+				checkbox.checked = true;
+			  }  
+		}  
+		id.checked = true;
+	}
+ 
+}
+</script>
+
+{% endblock %}
+
+{% block picture_comptwo_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片相似度
+{% endblock %}
+
+{% block option_des %}
+素材图片的相似度比较
+{% endblock %}
+
+{% block search_form %} 
+
+<form class="form" action="/piccomptwo/" method="post" enctype="multipart/form-data">	
+	<div class="col-md-6">
+		<div class="row">
+			<label>
+			  <input id="select_all" type="checkbox" OnClick="CheckSelect(this, this.form) ; " >全选/反选
+			</label>
+		</div>
+		<div class="row">
+
+				<p>
+				{% for item in comp_checkbox_dict %}
+					<div class="fields">
+					<label class="checkbox col-md-4">
+					  <input type="checkbox" id="piccomp" value={{item.0}} name={{item.0}} {% if item.2 == "1" %}checked=true{% else %}{% endif %} >{{item.1}}
+					</label>
+					</div>
+					
+				{% endfor %}
+				</p>
+		</div>
+	</div>
+
+	<div class="col-md-4">
+			<div class ="row">
+				<p>
+				<label class="file">
+					<input type="file" name="pic1" id="file1" value="上传">
+				</label>
+				</p>
+			
+
+			
+				<p>
+				<label class="file">
+					<input type="file" name="pic2" id="file2" value="上传">
+				</label>
+					
+				</p>
+			
+
+				<p>
+				<label>
+					<button type="submit" class="btn btn-md btn-primary">上传图片</button>
+				</label>
+				</p>
+			</div>
+			
+		
+			<div class ="row">
+				<p>
+					<a class="btn btn-md btn-success" href="/piccomptwo/test1/" role="button">样例1</a>
+					<a class="btn btn-md btn-success" href="/piccomptwo/test2/" role="button">样例2</a>
+				</p>
+			</div>
+	</div>
+
+{% if adjust_para %}
+	<div class="col-md-2">
+
+			<p>
+			<label for="dlpara">深度神经网络参数</label>	
+			 <input type="text" name="dlpara" id="dlpara" class="form-control" placeholder="深度神经网络参数" value=24>
+		  
+		  </p>
+	</div>
+{% else %}
+{% endif %}
+</form>
+
+{% if has_image_file %}
+
+<div class="table-responsive">
+		<table class="table table-striped">
+		<thead>
+			<tr>
+			  <th>图片一</th>
+			  <th>图片二</th>
+			</tr>
+		  </thead>
+		  <tbody>
+		  <tr>
+		  <td><img src={{ori_image1}}/></td>
+			 <td><img src={{ori_image2}}/></td>
+		  </tr>
+		  </tbody>
+		</table>
+	</div>
+
+{% endif %}
+
+{% endblock %}
+
+
+{% block output_name %}
+{% if pic_comp_normal_result %}
+图片相似度比较结果
+{% endif %}
+{% endblock %}
+
+
+
+{% block output_cont %}
+{% if pic_comp_normal_result %}
+
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">图片特征直接比较结果</h3>
+		</div>
+
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <th>比较算法</th>
+					  <th>相似度</th>
+					  <th>运行时间(s)</th>
+					</tr>
+				  </thead>
+				  <tbody>
+				  
+				  {% for item in  pic_comp_normal_result%}
+					<tr>
+					<td><h4>{{item.0}}</h4><em>{{item.3}}</em></td>
+					<td>{{item.1}}</td>
+					<td>{{item.2}}</td>
+					</tr>
+				  {% endfor %}
+				  </tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	{% if pic_comp_finger_result %}
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">图片特征指纹比较结果</h3>
+		</div>
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <th>比较算法</th>
+					  <th>指纹</th>
+					  <th>汉明距离</th>
+					  <th>运行时间(s)</th>
+					</tr>
+				  </thead>
+				  <tbody>
+				  
+				  {% for item in pic_comp_finger_result %}
+					<tr>
+					<td><h4>{{item.0}}</h4><em>{{item.3}}</em></td>
+					<td><p>{{item.4}}</p> <p>{{item.5}}</p></td>
+					<td>{{item.1}}</td>
+					<td>{{item.2}}</td>
+					</tr>
+				  {% endfor %}
+				  </tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	{% else %}
+	{% endif %}
+
+	{% if pic_comp_deeplearning_result %}
+	<div class="panel panel-primary">
+
+		<div class="panel-heading">
+		  <h3 class="panel-title">深度神经网络比较结果</h3>
+		</div>
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <th>比较算法</th>
+					  <th>相似度</th>
+					</tr>
+				  </thead>
+				  <tbody>
+				  
+				  {% for item in pic_comp_deeplearning_result %}
+					<tr>
+					<td><h4>{{item.0}}</h4><em>{{item.2}}</em></td>
+					<td>{{item.1}}</td>
+					</tr>
+				  {% endfor %}
+				  </tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	{% else %}
+	{% endif %}
+
+
+{% endif %}
+
+{% endblock %}

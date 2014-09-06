@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block pic_dissim_feedback_active %}
+"active"
+{% endblock %}
+
+
+{% block option_name %}
+图片相似度反馈
+{% endblock %}
+
+{% block search_form %} 
+<div class="row">
+<li ><a href="/pic_dissim_feedback/0/">未召回_阈值0.7_文件1(manny)</a></li>
+<li ><a href="/pic_dissim_feedback/1/">未召回_阈值0.7_文件2(nanhe)</a></li>
+<li ><a href="/pic_dissim_feedback/2/">未召回_阈值0.9_文件1(apple)</a></li>
+<li ><a href="/pic_dissim_feedback/3/">未召回_阈值0.9_文件2(golden)</a></li>
+<li ><a href="/pic_dissim_feedback/4/">新召回_阈值0.7_文件1(pierro)</a></li>
+<li ><a href="/pic_dissim_feedback/5/">新召回_阈值0.7_文件2(meteor)</a></li>
+<li ><a href="/pic_dissim_feedback/6/">新召回_阈值0.9_文件1(tyler)</a></li>
+<li ><a href="/pic_dissim_feedback/7/">新召回_阈值0.9_文件2(nelson)</a></li>
+</div>
+
+{% endblock %}
