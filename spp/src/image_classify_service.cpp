@@ -9,8 +9,8 @@
 #include "image_download.h"
 
 
-static image::ClassifyImpl * g_classify_impl;
-static image::ImageResource * g_image_resource;
+static image::ClassifyImpl* g_classify_impl;
+static image::ImageResource* g_image_resource;
 //格式化时间输出
 char *format_time(time_t tm);
 
@@ -106,7 +106,6 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
 
   int ret = 0;
   do {
-    //std::cout << "Here!" << std::endl;
     //解析包头消息
     g_classify_impl->request_message_.Clear();
     g_classify_impl->response_message_.Clear();
@@ -118,6 +117,7 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
       break;
     }
 
+    // 确定待分类的图片文件名,这个文件名是全路径的.因为client和server是部署在一起的.
     std::string file_name;
     if (!g_classify_impl->request_message_.has_file_name()) {
       //没有传输文件名,则需要根据url下载图片,url的长度需要大于4
@@ -133,6 +133,8 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
     } else {
       file_name = g_classify_impl->request_message_.file_name();
     }
+    g_classify_impl->response_message_.set_classify_filename(file_name);
+
     if (g_classify_impl->request_message_.has_request_type()) {
       if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY) {
         ret = g_classify_impl->ImageClassify(file_name,

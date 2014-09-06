@@ -39,7 +39,7 @@ class ClassifyImpl {
   ::image::ClassifyResponse response_message_;
 
  private:
-  const static int kTopNumber = 8;
+  const static int kTopNumber = 8;  // 分类最多取top8
   // for neural network
   Net<float> * caffe_test_net_;
 

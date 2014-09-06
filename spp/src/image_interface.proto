@@ -8,7 +8,7 @@ message ClassifyRequest {
     CLASSIFY_PAIPAI = 3;  //拍拍分类器
     SEMANTIC = 4;
   }
-  // file_name 与 creative_info 任意选择一个填入.如果选择 creative_info,则触发下载逻辑
+  // file_name 与 image_url 任意选择一个填入.如果选择image_url,则触发下载逻辑
   optional bytes file_name = 1;
   optional int32 top_n_result = 2 [default = 5];
   optional bytes compare_file_name = 3;
@@ -38,4 +38,7 @@ message ClassifyResponse {
   optional float similarity = 2;
   repeated SearchResult search_res = 3;
   repeated SearchFeature search_feature = 4;
+  // 待分类的文件名.如果request.filename有值,则classify_filename=request.filename
+  // 如果没有值,classify_filename则是利用image_url下载后的图片的文件路径
+  optional bytes classify_filename = 5;
 }
