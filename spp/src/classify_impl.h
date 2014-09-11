@@ -43,6 +43,9 @@ class ClassifyImpl {
   // for neural network
   Net<float> * caffe_test_net_;
 
+  // for alex network
+  Net<float> * caffe_alex_net_;
+
   // resource
   const ImageResource * image_resource_;
 

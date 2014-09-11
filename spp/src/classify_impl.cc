@@ -1,4 +1,4 @@
-#include <sstream>
+﻿#include <sstream>
 #include "classify_impl.h"
 #include "caffe/caffe.hpp"
 
@@ -6,16 +6,19 @@
 // DEFINE_string(pretrained_model, "../examples/imagenet_model", "The pretrained model.");
 DEFINE_string(model_def, "/data/vincentyao/gdt_creek_image/data/imagenet_deploy.prototxt", "The model definition file.");
 DEFINE_string(pretrained_model, "/data/vincentyao/gdt_creek_image/data/imagenet_model", "The pretrained model.");
+DEFINE_string(alex_model_def, "/data/vincentyao/gdt_creek_image/data/imagenet_deploy.prototxt", "The model definition file.");
+DEFINE_string(alex_pretrained_model, "/data/vincentyao/gdt_creek_image/data/imagenet_model", "The pretrained model.");
+
 DEFINE_int32(row_col_num, 227, "Row/Column number");
 DEFINE_bool(gpu, false, "use gpu for computation");
-DEFINE_int32(similarity_weight_layer, 23, "");
+DEFINE_int32(similarity_weight_layer, 19, "");
+DEFINE_int32(paiapi_use_layer, 19, "paipai classifier weight layer");
 // DEFINE_string(maxent_model, "../examples/paipai_model_23layer_8_feature", "The paipai model file.");
 DEFINE_string(maxent_model, "/data/vincentyao/gdt_creek_image/data/paipai_model_23layer_8_feature", "The paipai model file.");
 
 namespace image {
 
 bool ClassifyImpl::Init(const ImageResource * resource) {
-
   Caffe::set_phase(Caffe::TEST);
   if (FLAGS_gpu) {
     LOG(INFO) << "Using GPU";
@@ -27,12 +30,20 @@ bool ClassifyImpl::Init(const ImageResource * resource) {
   //读入模型定义
   NetParameter test_net_param;
   ReadProtoFromTextFile(FLAGS_model_def, &test_net_param);
-
   caffe_test_net_ = new Net<float>(test_net_param);
   NetParameter trained_net_param;
   //初始化模型参数
   ReadProtoFromBinaryFile(FLAGS_pretrained_model, &trained_net_param);
   caffe_test_net_->CopyTrainedLayersFrom(trained_net_param);
+
+  // 读入另一个模型定义Alex model
+  NetParameter alex_net_param;
+  ReadProtoFromTextFile(FLAGS_alex_model_def, &alex_net_param);
+  caffe_alex_net_ = new Net<float>(alex_net_param);
+  NetParameter alex_trained_net_param;
+  //初始化模型参数
+  ReadProtoFromBinaryFile(FLAGS_alex_pretrained_model, &alex_trained_net_param);
+  caffe_alex_net_->CopyTrainedLayersFrom(alex_trained_net_param);
 
   if (!me_model_.load_from_file(FLAGS_maxent_model)) {
     LOG(ERROR) << "me_model_ load_from_file error";
@@ -41,6 +52,7 @@ bool ClassifyImpl::Init(const ImageResource * resource) {
 
   //赋值持有资源
   image_resource_ = resource;
+  LOG(INFO) << "Classify Impl Init successfully!";
   return true;
 }
 
@@ -48,6 +60,10 @@ bool ClassifyImpl::UnInit() {
   if (caffe_test_net_) {
     delete caffe_test_net_;
     caffe_test_net_ = NULL;
+  }
+  if (caffe_alex_net_) {
+    delete caffe_alex_net_;
+    caffe_alex_net_ = NULL;
   }
   return true;
 }
@@ -67,6 +83,7 @@ bool SortMaxentResultVectorFunction(const std::pair<std::string, double> & x,
 
 int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int class_type) {
   if (top_n_res > kTopNumber) {
+    LOG(ERROR) << "top_n_res > kTopNumber. [" << top_n_res << "]";
     return -1;
   }
 
@@ -83,17 +100,28 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
     return -1;
   }
 
-  vector<Blob<float>*>& input_blobs = caffe_test_net_->input_blobs();
+  Net<float> * indeed_net = NULL;
+  if (class_type == image::ClassifyRequest::CLASSIFY_ALEX) {
+    indeed_net = caffe_alex_net_;
+  } else {
+    indeed_net = caffe_test_net_;
+  }
+  LOG(INFO) << "now class type: " << class_type;
+
+  vector<Blob<float>*>& input_blobs = indeed_net->input_blobs();
   //now set input_blobs with datum
   //uint8_t -> float
   //net , data layer, prefetch data
-  CHECK_EQ(input_blobs.size(), 1) << "input_blobs.size() != 1";
+  if(input_blobs.size() != 1) {
+    LOG(ERROR) << "input_blobs.size() != 1";
+    return -1;
+  }
   Blob<float>* blob = input_blobs[0];
   float* input_data = blob->mutable_cpu_data();
   float scale = 1;
   const string& data = datum.data();
   int datum_size = datum.channels() * datum.height() * datum.width();
-  VLOG(1) << "Datum size:" << datum_size;
+  LOG(INFO) << "Datum size:" << datum_size;
   if (data.size()) {
     for (int j = 0; j < datum_size; ++j) {
       input_data[j] = (static_cast<float>((uint8_t)data[j])) * scale;
@@ -105,27 +133,36 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
   }
 
   //predict
-  const vector<Blob<float>*>&  output_blobs = caffe_test_net_->ForwardPrefilled();
+  const vector<Blob<float>*>&  output_blobs = indeed_net->ForwardPrefilled();
   similarity_weight_vec_.clear();
   if (class_type == image::ClassifyRequest::SEARCH) {
     //store layer weight to calc similarity
-    const vector<Blob<float>*>& weight_vec = caffe_test_net_->top_vecs_[FLAGS_similarity_weight_layer];
+    if (FLAGS_similarity_weight_layer >= indeed_net->top_vecs_.size()) {
+      LOG(ERROR) << "FLAGS_similarity_weight_layer:" << FLAGS_similarity_weight_layer
+                 << ",indeed_net->top_vecs_.size():" << indeed_net->top_vecs_.size();
+      return -1;
+    }
+    const vector<Blob<float>*>& weight_vec = indeed_net->top_vecs_[FLAGS_similarity_weight_layer];
     for (size_t i = 0; i < weight_vec[0]->count(); i++) {
       similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
     }
   } else if (class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
-    //paipai分类器用第23层特征,这个是固定下来的.
-    const vector<Blob<float>*>& weight_vec = caffe_test_net_->top_vecs_[23];
+    //paipai分类器用第19层特征,这个是固定下来的.
+    if (FLAGS_paiapi_use_layer >= indeed_net->top_vecs_.size()) {
+      LOG(ERROR) << "FLAGS_paiapi_use_layer:" << FLAGS_paiapi_use_layer
+                 << ",indeed_net->top_vecs_.size():" << indeed_net->top_vecs_.size();
+      return -1;
+    }
+    const vector<Blob<float>*>& weight_vec = indeed_net->top_vecs_[FLAGS_paiapi_use_layer];
     for (size_t i = 0; i < weight_vec[0]->count(); i++) {
       similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
     }
   }
   //output result
-  VLOG(1) << "output blobs size:" << output_blobs.size();
   for (size_t i = 0; i < output_blobs.size(); i++) {
     int num = output_blobs[i]->num();
     int dim = output_blobs[i]->count() / output_blobs[i]->num();
-    VLOG(1) << "output_blobs:" << output_blobs[i]->num() << " " << output_blobs[i]->count();
+    LOG(INFO) << "output_blobs:" << output_blobs[i]->num() << " " << output_blobs[i]->count();
     const float* bottom_data = output_blobs[i]->cpu_data();
 
     for (int k = 0; k < num; ++k) {
@@ -154,7 +191,9 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
       //  printf("Rank%d : %d, %s, %f\n", kTopNumber-d, max_id[d], image_resource_->name_vector_[max_id[d]].c_str(), maxval[d]);
       //}
       printf("class_type:%d\n", class_type);
-      if (class_type == image::ClassifyRequest::CLASSIFY || class_type == image::ClassifyRequest::SEARCH) {
+      if (class_type == image::ClassifyRequest::CLASSIFY
+	        || class_type == image::ClassifyRequest::SEARCH
+	        || class_type == image::ClassifyRequest::CLASSIFY_ALEX) {
         //只取前top_n_res
         for (int d = kTopNumber - 1; d >= kTopNumber - top_n_res; d--) {
           ::image::ClassifyResult* result = response_message_.add_rsp_res();
@@ -193,9 +232,10 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
 
 int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::string & filename2) {
   int feature_layer_num = request_message_.feature_layer();
-  if (feature_layer_num >= 27 || feature_layer_num <= 1) {
+  // Todo 现在利用alex netword,layer number有变化
+  if (feature_layer_num >= 23 || feature_layer_num <= 1) {
     // feature layer should in correct interval;
-    feature_layer_num = 23;
+    feature_layer_num = 19;
   }
 
   Datum datum;
@@ -209,7 +249,7 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
     LOG(ERROR) << "Catch a exception!";
     return -1;
   }
-  vector<Blob<float>*>& input_blobs = caffe_test_net_->input_blobs();
+  vector<Blob<float>*>& input_blobs = caffe_alex_net_->input_blobs();
   //now set input_blobs with datum
   //uint8_t -> float
   //net , data layer, prefetch data
@@ -231,8 +271,8 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   }
 
   //predict
-  const vector<Blob<float>*>&  output_blobs = caffe_test_net_->ForwardPrefilled();
-  const vector<Blob<float>*>& caffe_feature_out = caffe_test_net_->top_vecs_[feature_layer_num];
+  const vector<Blob<float>*>&  output_blobs = caffe_alex_net_->ForwardPrefilled();
+  const vector<Blob<float>*>& caffe_feature_out = caffe_alex_net_->top_vecs_[feature_layer_num];
   float * caffe_feature_res = new float[caffe_feature_out[0]->count()];
   for (int k = 0; k < caffe_feature_out[0]->count(); k++) {
     caffe_feature_res[k] = caffe_feature_out[0]->cpu_data()[k];
@@ -249,7 +289,7 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
     LOG(ERROR) << "Catch a exception!";
     return -1;
   }
-  input_blobs = caffe_test_net_->input_blobs();
+  input_blobs = caffe_alex_net_->input_blobs();
   //now set input_blobs with datum
   //uint8_t -> float
   //net , data layer, prefetch data
@@ -269,8 +309,8 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   }
 
   //predict
-  const vector<Blob<float>*>&  output_blobs2 = caffe_test_net_->ForwardPrefilled();
-  const vector<Blob<float>*>& caffe_feature_out_2 = caffe_test_net_->top_vecs_[feature_layer_num];
+  const vector<Blob<float>*>&  output_blobs2 = caffe_alex_net_->ForwardPrefilled();
+  const vector<Blob<float>*>& caffe_feature_out_2 = caffe_alex_net_->top_vecs_[feature_layer_num];
 
   float ab = 0, a2 = 0, b2 = 0;
   for (int k = 0; k < caffe_feature_out_2[0]->count(); k++) {
@@ -359,12 +399,12 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
   }
 
   if (ImageClassify(filename, 5, image::ClassifyRequest::SEARCH) != 0) {
+    LOG(ERROR) << "ImageClassify error";
     return -1;
   }
   //according class id, search similarity images in the index.
   search_res_container_.clear();
   ImageCategoryIndex::const_iterator it;
-  VLOG(1) << "response_message_.rsp_res_size(): " << response_message_.rsp_res_size();
   for (int i = 0; i < response_message_.rsp_res_size() && i < FLAGS_top_n_limit; i++) {
     int class_id = response_message_.rsp_res(i).category_id();
     it = image_class_index->find(class_id);
@@ -377,7 +417,7 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
   }
 
   //calc similarity for candidates
-  VLOG(0) << "Search candidates num:" << search_res_container_.size();
+  LOG(INFO) << "Search candidates num:" << search_res_container_.size();
   for (SearchResultContainer::iterator it1 = search_res_container_.begin();
        it1 != search_res_container_.end(); it1++) {
     float sim = 0;
@@ -389,7 +429,7 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
   //sort map
   search_res_sort_vec_.clear();
   SortSearchResultMap(search_res_container_, search_res_sort_vec_);
-  VLOG(0) << "Search candidates num1:" << search_res_container_.size()
+  LOG(INFO) << "Search candidates num1:" << search_res_container_.size()
           << "; num2:" << search_res_sort_vec_.size();
 
   int add_num = 0;
@@ -426,7 +466,7 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
     }
 
     //sort tokenmap;
-    VLOG(0) << "token_map.size() : " << token_map.size();
+    LOG(INFO) << "token_map.size() : " << token_map.size();
     if (token_map.size() < 1) {
       return -1;
     }

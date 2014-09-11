@@ -8,7 +8,7 @@
 #include "image_download.h"
 #include "glog/logging.h"
 
-DEFINE_string(download_dir, "/data/vincentyao/appdemo/app/uploads/", "image下载目录");
+DEFINE_string(download_dir, "/data/vincentyao/appdemo/app/uploads/", "image下载目录,在部署白板的时候,必须和白板的uploads目录一致");
 DEFINE_string(proxy_ip_port, "10.130.24.42:80", "proxy to download");
 DEFINE_string(proxy_user_pwd, "", "user and pwd of proxy");
 
@@ -89,4 +89,4 @@ bool ImageDownload::Download(const std::string & url, std::string & download_fil
   return true;
 }
 
-} // namespace image
+}  // namespace image

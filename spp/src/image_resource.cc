@@ -82,7 +82,7 @@ int ImageResource::LoadClassNameVector() {
     std::string name = synset_line.substr(found + 1);
     name_vector_.push_back(name);
   }
-  VLOG(0) << "imagenet name_vector_.size : " << name_vector_.size();
+  LOG(ERROR) << "imagenet name_vector_.size : " << name_vector_.size();
   ifs.close();
   CHECK_EQ(name_vector_.size(), 1000) << "name_vector_.size != 1000";
 
@@ -97,7 +97,7 @@ int ImageResource::LoadClassNameVector() {
     std::string name = synset_line.substr(found + 1);
     paipai_name_vector_.push_back(name);
   }
-  VLOG(0) << "paipai_name_vector_.size : " << paipai_name_vector_.size();
+  LOG(ERROR) << "paipai_name_vector_.size : " << paipai_name_vector_.size();
   CHECK_EQ(paipai_name_vector_.size(), 75) << "paipai_name_vector_.size != 75";
   ifs.close();
   return 0;
@@ -156,12 +156,12 @@ int ImageResource::LoadImageIndex(const char* filename) {
     }
     line_num++;
     if (line_num % 100000 == 0) {
-      VLOG(1) << "Load image index. line:" << line_num;
+      LOG(INFO) << "Load image index. line:" << line_num;
     }
 
   }
 
-  VLOG(0) << "image_uniquer_.size(): " << image_uniquer_.size()
+  LOG(ERROR) << "image_uniquer_.size(): " << image_uniquer_.size()
           << " index_id_to_filename_.size(): " << index_id_to_filename_.size()
           << " sim_weight_index_.size(): " << sim_weight_index_.size()
           << " image_class_index_.size(): " << image_class_index_.size() << std::endl;
@@ -186,7 +186,7 @@ int ImageResource::LoadImageSemanticFeature() {
     }
     feature_vec_map_.insert(std::make_pair(split_result[0], feature_vec));
   }
-  VLOG(0) << "feature_vec_map_.size : " << feature_vec_map_.size();
+  LOG(ERROR) << "feature_vec_map_.size : " << feature_vec_map_.size();
   ifs.close();
   return 0;
 }
@@ -245,11 +245,11 @@ int ImageResource::LoadImageSemanticIndex(const char* filename) {
     }
     line_num++;
     if (line_num % 100000 == 0) {
-      VLOG(1) << "Load image index. line:" << line_num;
+      //LOG(INFO) << "Load image index. line:" << line_num;
     }
   }
 
-  VLOG(0) << "image_uniquer_.size(): " << image_uniquer_.size()
+  LOG(ERROR) << "image_uniquer_.size(): " << image_uniquer_.size()
           << " index_id_to_filename_semantic_.size(): " << index_id_to_filename_semantic_.size()
           << " sim_weight_index_semantic_.size(): " << sim_weight_index_semantic_.size()
           << " image_class_index_semantic_.size(): " << image_class_index_semantic_.size() << std::endl;

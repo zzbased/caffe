@@ -3,17 +3,14 @@ CC  = gcc
 CXX = g++
 GCCVER := $(shell $(CC) -dumpversion | awk -F. '{ print $$1"."$$2}' )
 
-INC += -I./spp_incl/ -I ../../../libthird/include/ -I ../../include/ -I /data/home/vincentyao/intel/mkl/include
-#LIB += -lsppasync -lasync_epoll -lcore
-LIB = -L../../../libthird/lib -L ../../ -lcaffe -lmaxent -lcurl -lcityhash -lglog -lprotobuf
+INC += -I./spp_incl/ -I ../../../libthird/include/ -I ../../include/ -I /data/home/vincentyao/intel/mkl/include -I../../.build_release/src/
+LIB = -L../../../libthird/lib -L ../../.build_release/lib/ -lcaffe -lmaxent -lcurl -lcityhash -lprotobuf -lgflags -lglog
 
 OBJ_DIR=./obj
 LIB_DIR=.
 
-LIB_NAME=spp_module_test.so 
-
+LIB_NAME=gdt_creek_image.so 
 TARGET = $(LIB_DIR)/$(LIB_NAME)
-
 	
 OBJ =  $(OBJ_DIR)/image_classify_service.o  $(OBJ_DIR)/image_interface.pb.o \
 	   $(OBJ_DIR)/classify_impl.o $(OBJ_DIR)/image_resource.o $(OBJ_DIR)/image_download.o
@@ -23,7 +20,7 @@ CXXSRC_EXT= .cpp
 CXXSRC_EXT2= .cc
 CSRC_EXT= .c
 
-CFLAGS  = -g -fPIC -shared -Wall -O2 -pipe -fno-ident -MMD -D_GNU_SOURCE -D_REENTRANT
+CFLAGS  = -g -fPIC -shared -Wall -O2 -pipe -fno-ident -MMD -D_GNU_SOURCE -D_REENTRANT -DCPU_ONLY=1
 #ARCH = $(shell $(CC) $(DEBUG) -E -DARCHTEST ../../build/conftest.c|grep 86)
 #ifeq ($(ARCH),i386)
 #    CFLAGS += $(shell ../../build/conftest.sh "$(CC)" -march=pentium3)

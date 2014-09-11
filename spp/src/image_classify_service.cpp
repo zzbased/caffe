@@ -1,10 +1,10 @@
 //必须包含spp的头文件
-#include "sppincl.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "glog/logging.h"
 
+#include "sppincl.h"
 #include "classify_impl.h"
 #include "image_download.h"
 
@@ -26,9 +26,7 @@ extern "C" int spp_handle_init(void* arg1, void* arg2) {
   base->log_.log_level(LOG_TRACE);
   base->log_.LOG_P_PID(LOG_ERROR, "spp_handle_init, config:%s, servertype:%d\n", etc, base->servertype());
   if (base->servertype() == SERVER_TYPE_WORKER) {
-
     ::google::AllowCommandLineReparsing();
-    //::google::ParseCommandLineFlags(&argc, &pargv, true);
     google::ReadFromFlagsFile(etc, program_invocation_name, true);
     //::google::InitGoogleLogging("image_classify");
     g_classify_impl = new image::ClassifyImpl();
@@ -111,9 +109,9 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
     g_classify_impl->response_message_.Clear();
     LOG(INFO) << "receive data len: " << blob->len;
     if (g_classify_impl->request_message_.ParseFromArray(blob->data, blob->len)) {
-      VLOG(1) << g_classify_impl->request_message_.Utf8DebugString();
+      LOG(INFO) << g_classify_impl->request_message_.Utf8DebugString();
     } else {
-      LOG(ERROR) << "ParseFromString error";
+      LOG(ERROR) << "Request ParseFromString error";
       break;
     }
 
@@ -136,9 +134,11 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
     g_classify_impl->response_message_.set_classify_filename(file_name);
 
     if (g_classify_impl->request_message_.has_request_type()) {
-      if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY) {
+      if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY
+          || g_classify_impl->request_message_.request_type() == image::ClassifyRequest::CLASSIFY_ALEX) {
         ret = g_classify_impl->ImageClassify(file_name,
-                                             g_classify_impl->request_message_.top_n_result());
+                                             g_classify_impl->request_message_.top_n_result(),
+                                             g_classify_impl->request_message_.request_type());
       } else if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::SIMILARITY) {
         if (g_classify_impl->request_message_.has_compare_file_name()) {
           ret = g_classify_impl->ImageSimilarity(g_classify_impl->request_message_.file_name(),
@@ -153,7 +153,7 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
                  && FLAGS_open_search_function) {
         ret = g_classify_impl->ImageClassify(file_name,
                                              g_classify_impl->request_message_.top_n_result(),
-                                             image::ClassifyRequest::CLASSIFY_PAIPAI);
+                                             g_classify_impl->request_message_.request_type());
       } else if (g_classify_impl->request_message_.request_type() == image::ClassifyRequest::SEMANTIC
                  && FLAGS_open_search_function) {
         ret = g_classify_impl->ImageSearch(file_name,
@@ -174,7 +174,7 @@ extern "C" int spp_handle_process(unsigned flow, void* arg1, void* arg2) {
   } while (0);
 
   //发送protobuf包
-  VLOG(1) << g_classify_impl->response_message_.Utf8DebugString();
+  // LOG(INFO) << g_classify_impl->response_message_.Utf8DebugString();
   std::string send_buf;
   g_classify_impl->response_message_.SerializeToString(&send_buf);
   blob_type rspblob;

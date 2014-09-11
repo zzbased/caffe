@@ -7,6 +7,7 @@ message ClassifyRequest {
     SEARCH = 2;
     CLASSIFY_PAIPAI = 3;  //拍拍分类器
     SEMANTIC = 4;
+    CLASSIFY_ALEX = 5;
   }
   // file_name 与 image_url 任意选择一个填入.如果选择image_url,则触发下载逻辑
   optional bytes file_name = 1;
