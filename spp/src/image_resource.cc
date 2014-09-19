@@ -94,11 +94,13 @@ int ImageResource::LoadClassNameVector() {
   paipai_name_vector_.clear();
   while (getline(ifs, synset_line)) {
     std::size_t found = synset_line.find_last_of("\t");
-    std::string name = synset_line.substr(found + 1);
-    paipai_name_vector_.push_back(name);
+    std::cout << synset_line << std::endl;
+    int id = atoi(synset_line.substr(0, found).c_str());
+    const std::string& name = synset_line.substr(found + 1);
+    // std::cout << id << "," << name << std::endl;
+    paipai_name_vector_.insert(std::make_pair<int, std::string>(id,name));
   }
   LOG(ERROR) << "paipai_name_vector_.size : " << paipai_name_vector_.size();
-  CHECK_EQ(paipai_name_vector_.size(), 75) << "paipai_name_vector_.size != 75";
   ifs.close();
   return 0;
 }
@@ -119,8 +121,12 @@ int ImageResource::LoadImageIndex(const char* filename) {
     SplitString(line, " ", &split_result);
     int class_num = atoi(split_result[1].c_str());
     int weight_num = atoi(split_result[2].c_str());
-    if (class_num < 5 || weight_num != 4096 || split_result.size() != (3 + 2 * class_num + weight_num)) {
-      std::cerr << "format error:" << class_num << "," << class_num << "," << split_result.size() << std::endl;
+    if (class_num < 5
+        || weight_num != 4096
+        || split_result.size() != (3 + 2 * class_num + weight_num)) {
+      std::cerr << "format error:" << class_num
+                << "," << class_num
+                << "," << split_result.size() << std::endl;
       continue;
     }
     size_t image_id = 0;
@@ -182,7 +188,8 @@ int ImageResource::LoadImageSemanticFeature() {
     int feature_num = atoi(split_result[1].c_str());
     FeatureVec feature_vec;
     for (int i = 0; i < feature_num; ++i) {
-      feature_vec.push_back(Feature(split_result[2 + i * 2], split_result[2 + i * 2 + 1]));
+      feature_vec.push_back(
+          Feature(split_result[2 + i * 2], split_result[2 + i * 2 + 1]));
     }
     feature_vec_map_.insert(std::make_pair(split_result[0], feature_vec));
   }
@@ -208,8 +215,12 @@ int ImageResource::LoadImageSemanticIndex(const char* filename) {
     SplitString(line, " ", &split_result);
     int class_num = atoi(split_result[1].c_str());
     int weight_num = atoi(split_result[2].c_str());
-    if (class_num < 5 || weight_num != 4096 || split_result.size() != (3 + 2 * class_num + weight_num)) {
-      std::cerr << "format error:" << class_num << "," << class_num << "," << split_result.size() << std::endl;
+    if (class_num < 5
+        || weight_num != 4096
+        || split_result.size() != (3 + 2 * class_num + weight_num)) {
+      std::cerr << "format error:" << class_num
+                << "," << class_num
+                << "," << split_result.size() << std::endl;
       continue;
     }
     size_t image_id = 0;
@@ -249,10 +260,14 @@ int ImageResource::LoadImageSemanticIndex(const char* filename) {
     }
   }
 
-  LOG(ERROR) << "image_uniquer_.size(): " << image_uniquer_.size()
-          << " index_id_to_filename_semantic_.size(): " << index_id_to_filename_semantic_.size()
-          << " sim_weight_index_semantic_.size(): " << sim_weight_index_semantic_.size()
-          << " image_class_index_semantic_.size(): " << image_class_index_semantic_.size() << std::endl;
+  LOG(ERROR) << "image_uniquer_.size(): "
+             << image_uniquer_.size()
+             << " index_id_to_filename_semantic_.size(): "
+             << index_id_to_filename_semantic_.size()
+             << " sim_weight_index_semantic_.size(): "
+             << sim_weight_index_semantic_.size()
+             << " image_class_index_semantic_.size(): "
+             << image_class_index_semantic_.size() << std::endl;
 
   return 0;
 }

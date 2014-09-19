@@ -22,7 +22,7 @@ template <typename T> std::string to_string(const T& n) {
 
 std::string FileNameEncode(const std::string & filename) {
   std::string indeed_filename = FLAGS_download_dir + "/"
-                                + to_string(CityHash64(filename.c_str(), filename.size())) + ".jpg";
+      + to_string(CityHash64(filename.c_str(), filename.size())) + ".jpg";
   return indeed_filename;
 }
 
@@ -37,7 +37,8 @@ size_t ProcessData(void *buffer, size_t size, size_t nmemb, void *user_p) {
   return return_size;
 }
 
-bool ImageDownload::Download(const std::string & url, std::string & download_file) {
+bool ImageDownload::Download(const std::string & url,
+                             std::string & download_file) {
   download_file = FileNameEncode(url);
   if (IsFileExist(download_file)) {
     //已下载

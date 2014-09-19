@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <tr1/unordered_map>
 
 #include <glog/logging.h>
 #include <google/gflags.h>
@@ -29,7 +30,7 @@ typedef std::vector<float> SimWeightVector;
 typedef std::vector<SimWeightVector> SimWeightIndex;
 typedef std::vector<std::string> IdToFileName;
 typedef std::map<std::string, size_t> ImageUniquer;
-
+typedef std::map<int, std::string> CategoryIdToName;
 typedef struct sFeature {
   std::string token;
   float weight;
@@ -46,7 +47,7 @@ class ImageResource {
 
   // for resource
   std::vector<std::string> name_vector_;
-  std::vector<std::string> paipai_name_vector_;
+  CategoryIdToName paipai_name_vector_;
 
   int LoadClassNameVector();
   // for index

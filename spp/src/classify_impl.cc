@@ -1,4 +1,4 @@
-﻿#include <sstream>
+#include <sstream>
 #include "classify_impl.h"
 #include "caffe/caffe.hpp"
 
@@ -19,6 +19,7 @@ DEFINE_string(maxent_model, "/data/vincentyao/gdt_creek_image/data/paipai_model_
 namespace image {
 
 bool ClassifyImpl::Init(const ImageResource * resource) {
+
   Caffe::set_phase(Caffe::TEST);
   if (FLAGS_gpu) {
     LOG(INFO) << "Using GPU";
@@ -30,6 +31,7 @@ bool ClassifyImpl::Init(const ImageResource * resource) {
   //读入模型定义
   NetParameter test_net_param;
   ReadProtoFromTextFile(FLAGS_model_def, &test_net_param);
+
   caffe_test_net_ = new Net<float>(test_net_param);
   NetParameter trained_net_param;
   //初始化模型参数
@@ -81,7 +83,8 @@ bool SortMaxentResultVectorFunction(const std::pair<std::string, double> & x,
   return x.second > y.second;
 }
 
-int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int class_type) {
+int ClassifyImpl::ImageClassify(const std::string & filename,
+                                int top_n_res, int class_type) {
   if (top_n_res > kTopNumber) {
     LOG(ERROR) << "top_n_res > kTopNumber. [" << top_n_res << "]";
     return -1;
@@ -101,7 +104,8 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
   }
 
   Net<float> * indeed_net = NULL;
-  if (class_type == image::ClassifyRequest::CLASSIFY_ALEX) {
+  if (class_type == image::ClassifyRequest::CLASSIFY_ALEX
+      || class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
     indeed_net = caffe_alex_net_;
   } else {
     indeed_net = caffe_test_net_;
@@ -142,12 +146,13 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
                  << ",indeed_net->top_vecs_.size():" << indeed_net->top_vecs_.size();
       return -1;
     }
-    const vector<Blob<float>*>& weight_vec = indeed_net->top_vecs_[FLAGS_similarity_weight_layer];
+    const vector<Blob<float>*>& weight_vec =
+        indeed_net->top_vecs_[FLAGS_similarity_weight_layer];
     for (size_t i = 0; i < weight_vec[0]->count(); i++) {
       similarity_weight_vec_.push_back(weight_vec[0]->cpu_data()[i]);
     }
   } else if (class_type == image::ClassifyRequest::CLASSIFY_PAIPAI) {
-    //paipai分类器用第19层特征,这个是固定下来的.
+    //paipai分类器用第21层特征,这个是固定下来的.
     if (FLAGS_paiapi_use_layer >= indeed_net->top_vecs_.size()) {
       LOG(ERROR) << "FLAGS_paiapi_use_layer:" << FLAGS_paiapi_use_layer
                  << ",indeed_net->top_vecs_.size():" << indeed_net->top_vecs_.size();
@@ -159,14 +164,16 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
     }
   }
   //output result
+  LOG(INFO) << "output blobs size:" << output_blobs.size();
   for (size_t i = 0; i < output_blobs.size(); i++) {
     int num = output_blobs[i]->num();
     int dim = output_blobs[i]->count() / output_blobs[i]->num();
-    LOG(INFO) << "output_blobs:" << output_blobs[i]->num() << " " << output_blobs[i]->count();
+    LOG(INFO) << "output_blobs:" << output_blobs[i]->num()
+              << " " << output_blobs[i]->count();
     const float* bottom_data = output_blobs[i]->cpu_data();
 
     for (int k = 0; k < num; ++k) {
-      //top kTopNumber
+      // top kTopNumber
       float maxval[kTopNumber] = { -1};
       int max_id[kTopNumber] = {0};
       for (int j = 0; j < dim; ++j) {
@@ -187,13 +194,14 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
       }
 
       printf("%s\n", filename.c_str());
-      //for (int d=kTopNumber-1; d>=0; d--) {
-      //  printf("Rank%d : %d, %s, %f\n", kTopNumber-d, max_id[d], image_resource_->name_vector_[max_id[d]].c_str(), maxval[d]);
-      //}
+      // for (int d=kTopNumber-1; d>=0; d--) {
+      //   printf("Rank%d : %d, %s, %f\n", kTopNumber-d,
+      //           max_id[d], image_resource_->name_vector_[max_id[d]].c_str(), maxval[d]);
+      // }
       printf("class_type:%d\n", class_type);
       if (class_type == image::ClassifyRequest::CLASSIFY
-	        || class_type == image::ClassifyRequest::SEARCH
-	        || class_type == image::ClassifyRequest::CLASSIFY_ALEX) {
+          || class_type == image::ClassifyRequest::SEARCH
+          || class_type == image::ClassifyRequest::CLASSIFY_ALEX) {
         //只取前top_n_res
         for (int d = kTopNumber - 1; d >= kTopNumber - top_n_res; d--) {
           ::image::ClassifyResult* result = response_message_.add_rsp_res();
@@ -206,23 +214,39 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
         ME_Sample sample;
         for (int d = kTopNumber - 1; d >= 0; d--) {
           sample.add_feature(itoa(max_id[d]), maxval[d]);
+          // std::cout << "addfeature:" << max_id[d] << "," << maxval[d];
         }
         for (size_t d = 0; d < similarity_weight_vec_.size(); d++) {
-          sample.add_feature(itoa(4096 + 2000 + d), similarity_weight_vec_[d]);
+          sample.add_feature(itoa(2000 + d), similarity_weight_vec_[d]);
+          // std::cout << "addfeature:" << itoa(2000 + d)
+          //           << "," << similarity_weight_vec_[d];
         }
         std::vector<double>  membp = me_model_.classify(sample);
         std::vector< std::pair<std::string, float> > sort_vec;
         for (int d = 0; d < membp.size(); d++) {
-          sort_vec.push_back(std::make_pair(me_model_.get_class_label(d), membp[d]));
+          if (me_model_.get_class_label(d).size() > 0U) {
+            sort_vec.push_back(
+                std::make_pair(me_model_.get_class_label(d), membp[d]));
+            // std::cout << "\nresult:" << me_model_.get_class_label(d)
+            //           << "," << membp[d];
+          }
         }
-        std::sort(sort_vec.begin(), sort_vec.end(), SortMaxentResultVectorFunction);
+        std::sort(sort_vec.begin(), sort_vec.end(),
+            SortMaxentResultVectorFunction);
 
         for (int d = 0; d < sort_vec.size() && d < top_n_res; d++) {
           ::image::ClassifyResult* result = response_message_.add_rsp_res();
           int id = atoi(sort_vec[d].first.c_str());
-          result->set_category_name(image_resource_->paipai_name_vector_[id]);
+          CategoryIdToName::const_iterator cit =
+              image_resource_->paipai_name_vector_.find(id);
+          if (cit == image_resource_->paipai_name_vector_.end()) {
+            continue;
+          }
+          result->set_category_name(cit->second);
           result->set_category_id(id);
           result->set_category_weight(sort_vec[d].second);
+          // std::cout << id << "," << cit->second << ","
+          //           << sort_vec[d].second << std::endl;
         }
       }
     }
@@ -230,7 +254,8 @@ int ClassifyImpl::ImageClassify(const std::string & filename, int top_n_res, int
   return 0;
 }
 
-int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::string & filename2) {
+int ClassifyImpl::ImageSimilarity(const std::string & filename,
+                                  const std::string & filename2) {
   int feature_layer_num = request_message_.feature_layer();
   // Todo 现在利用alex netword,layer number有变化
   if (feature_layer_num >= 23 || feature_layer_num <= 1) {
@@ -241,7 +266,8 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   Datum datum;
   const static int kUndefinedLabel = 0;
   try {
-    if (!ReadImageToDatum(filename.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
+    if (!ReadImageToDatum(filename.c_str(), kUndefinedLabel,
+        FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
       LOG(ERROR) << "ReadImageToDatum Error";
       return -1;
     }
@@ -272,7 +298,8 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
 
   //predict
   const vector<Blob<float>*>&  output_blobs = caffe_alex_net_->ForwardPrefilled();
-  const vector<Blob<float>*>& caffe_feature_out = caffe_alex_net_->top_vecs_[feature_layer_num];
+  const vector<Blob<float>*>& caffe_feature_out =
+      caffe_alex_net_->top_vecs_[feature_layer_num];
   float * caffe_feature_res = new float[caffe_feature_out[0]->count()];
   for (int k = 0; k < caffe_feature_out[0]->count(); k++) {
     caffe_feature_res[k] = caffe_feature_out[0]->cpu_data()[k];
@@ -281,7 +308,8 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   //another picture
   datum.Clear();
   try {
-    if (!ReadImageToDatum(filename2.c_str(), kUndefinedLabel, FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
+    if (!ReadImageToDatum(filename2.c_str(), kUndefinedLabel,
+        FLAGS_row_col_num, FLAGS_row_col_num, &datum)) {
       LOG(ERROR) << "ReadImageToDatum Error";
       return -1;
     }
@@ -309,14 +337,17 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   }
 
   //predict
-  const vector<Blob<float>*>&  output_blobs2 = caffe_alex_net_->ForwardPrefilled();
-  const vector<Blob<float>*>& caffe_feature_out_2 = caffe_alex_net_->top_vecs_[feature_layer_num];
+  const vector<Blob<float>*>&  output_blobs2 =
+      caffe_alex_net_->ForwardPrefilled();
+  const vector<Blob<float>*>& caffe_feature_out_2 =
+      caffe_alex_net_->top_vecs_[feature_layer_num];
 
   float ab = 0, a2 = 0, b2 = 0;
   for (int k = 0; k < caffe_feature_out_2[0]->count(); k++) {
     ab += (caffe_feature_out_2[0]->cpu_data()[k] * caffe_feature_res[k]);
     a2 += (caffe_feature_res[k] * caffe_feature_res[k]);
-    b2 += (caffe_feature_out_2[0]->cpu_data()[k] * caffe_feature_out_2[0]->cpu_data()[k]);
+    b2 += (caffe_feature_out_2[0]->cpu_data()[k] *
+        caffe_feature_out_2[0]->cpu_data()[k]);
   }
   float similarity = 0;
   if (a2 < 0.000001 || b2 < 0.000001) {
@@ -333,7 +364,9 @@ int ClassifyImpl::ImageSimilarity(const std::string & filename, const std::strin
   return 0;
 }
 
-int ClassifyImpl::CalcSimilairtyInSearch(const SimWeightVector & other_weight_vec, float & similarity) {
+int ClassifyImpl::CalcSimilairtyInSearch(
+    const SimWeightVector & other_weight_vec,
+    float & similarity) {
 
   if (other_weight_vec.size() != similarity_weight_vec_.size()) {
     similarity = 0;
@@ -357,30 +390,40 @@ int ClassifyImpl::CalcSimilairtyInSearch(const SimWeightVector & other_weight_ve
 }
 
 //for 排序search结果
-bool SortSearchResultVectorFunction(const std::pair<int, float> & x, const std::pair<int, float> & y) {
+bool SortSearchResultVectorFunction(
+    const std::pair<int, float> & x,
+    const std::pair<int, float> & y) {
   return x.second > y.second;
 }
 
-int ClassifyImpl::SortSearchResultMap(const SearchResultContainer & search_map, SearchResultSortVector & search_vec) {
-  for (SearchResultContainer::const_iterator it = search_map.begin(); it != search_map.end(); it++) {
+int ClassifyImpl::SortSearchResultMap(
+    const SearchResultContainer & search_map,
+    SearchResultSortVector & search_vec) {
+  for (SearchResultContainer::const_iterator it = search_map.begin();
+       it != search_map.end(); it++) {
     search_vec.push_back(std::make_pair(it->first, it->second));
   }
-  std::sort(search_vec.begin(), search_vec.end(), SortSearchResultVectorFunction);
+  std::sort(search_vec.begin(), search_vec.end(),
+      SortSearchResultVectorFunction);
   return 0;
 }
 
 //for 排序feature token结果
-bool SortMapFunction(const std::pair<std::string, float> & lhs, const std::pair<std::string, float> & rhs) {
+bool SortMapFunction(const std::pair<std::string, float>& lhs,
+                     const std::pair<std::string, float>& rhs) {
   return lhs.second > rhs.second;
 }
-void SortTokenMap(const std::map<std::string, float> & map, std::vector< std::pair<std::string, float> > *vec) {
-  for (std::map<std::string, float>::const_iterator it = map.begin(); it != map.end(); it++) {
+void SortTokenMap(const std::map<std::string, float>& map,
+                  std::vector< std::pair<std::string, float> >* vec) {
+  for (std::map<std::string, float>::const_iterator it = map.begin();
+       it != map.end(); it++) {
     vec->push_back(std::make_pair(it->first, it->second));
   }
   std::sort(vec->begin(), vec->end(), SortMapFunction);
 }
 
-int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int class_type) {
+int ClassifyImpl::ImageSearch(const std::string & filename,
+                              int top_n_res, int class_type) {
 
   const IdToFileName* index_id_to_filename = NULL;
   const SimWeightIndex * sim_weight_index = NULL;
@@ -438,8 +481,10 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
       if (search_res_sort_vec_[i].second >= request_message_.min_sim_thres()
           && search_res_sort_vec_[i].second <= request_message_.max_sim_thres()) {
         ::image::SearchResult* add_search_res =  response_message_.add_search_res();
-        add_search_res->set_search_file_name((*index_id_to_filename)[search_res_sort_vec_[i].first]);
-        add_search_res->set_search_similarity(search_res_sort_vec_[i].second);
+        add_search_res->set_search_file_name(
+            (*index_id_to_filename)[search_res_sort_vec_[i].first]);
+        add_search_res->set_search_similarity(
+            search_res_sort_vec_[i].second);
         add_num++;
       } else {
         continue;
@@ -456,9 +501,11 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
       if (it != image_resource_->feature_vec_map_.end()) {
         for (size_t k = 0; k < it->second.size(); ++k) {
           if (token_map.find(it->second[k].token) != token_map.end()) {
-            token_map[it->second[k].token] += it->second[k].weight * search_res_sort_vec_[i].second;
+            token_map[it->second[k].token] +=
+                it->second[k].weight * search_res_sort_vec_[i].second;
           } else {
-            token_map[it->second[k].token] = it->second[k].weight * search_res_sort_vec_[i].second;
+            token_map[it->second[k].token] =
+                it->second[k].weight * search_res_sort_vec_[i].second;
           }
         }
         add_num++;
@@ -473,7 +520,8 @@ int ClassifyImpl::ImageSearch(const std::string & filename, int top_n_res, int c
     std::vector< std::pair<std::string, float> > token_vec;
     SortTokenMap(token_map, &token_vec);
     for (size_t i = 0; i < token_vec.size() && i < top_n_res; ++i) {
-      ::image::SearchFeature* add_search_feature =  response_message_.add_search_feature();
+      ::image::SearchFeature* add_search_feature =
+          response_message_.add_search_feature();
       add_search_feature->set_feature_token(token_vec[i].first);
       add_search_feature->set_feature_weight(token_vec[i].second);
     }
